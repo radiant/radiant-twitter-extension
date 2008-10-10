@@ -14,7 +14,7 @@ module TwitterNotification
       begin
         status = Twitter::Base.new(config['twitter.username'], config['twitter.password']).update(message, :source => "Radiant Twitter Notifier")
         # Don't trigger save callbacks
-        self.class.update_all(:twitter_id => status.id, :id => self.id)
+        self.class.update_all({:twitter_id => status.id}, :id => self.id)
       rescue Exception => e
         # Twitter failed... just log for now
         logger.error "Twitter Notification failure: #{e.inspect}"

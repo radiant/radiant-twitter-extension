@@ -6,12 +6,13 @@ class TwitterExtension < Radiant::Extension
   url "http://github.com/seancribbs/radiant-twitter-extension"
 
   define_routes do |map|
-    map.connect '/admin/twitter', :controller => "twitter", :action => "edit", :method => :get
-    map.connect '/admin/twitter', :controller => "twitter", :action => "update", :method => :put
+    map.with_options :controller => 'twitter' do |t|
+      t.twitter '/admin/twitter', :action => "edit"
+    end
   end
   
   def activate
-    admin.tabs.add "Twitter", "/admin/twitter", :after => "Layouts", :visibility => [:all]
+    admin.tabs.add "Twitter", "/admin/twitter"
     admin.page.edit.add :extended_metadata, "twitter"
     Page.class_eval { include TwitterNotification }
   end
