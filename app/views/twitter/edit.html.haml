@@ -1,0 +1,15 @@
+%h1 Edit Twitter Notification settings
+
+- form_tag :method => :put do
+  %p
+    %label{:for => 'username'} Username
+    = text_field_tag 'username', @config['twitter.username'], :size => 30
+  %p
+    %label{:for => 'username'} Password
+    = text_field_tag 'password', @config['twitter.password'], :size => 30
+  %p
+    %label{:for => 'username'} Base URL or host 
+    = text_field_tag 'username', (@config['twitter.url_host'] || request.host), :size => 30
+  %p
+    = submit_tag 'Save settings'
+  
