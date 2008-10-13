@@ -8,7 +8,7 @@ module TwitterNotification
   
   def notify_twitter
     if published? && twitter_configured? && parent.notify_twitter_of_children? && !self.twitter_id
-      title_length = 160 - absolute_url.length - 2
+      title_length = 138 - absolute_url.length
       message_title = title.length > title_length ? (title[0..title_length-4] + "...") : title
       message = "#{message_title}: #{absolute_url}"
       begin
