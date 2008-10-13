@@ -12,7 +12,7 @@ module TwitterNotification
       message_title = title.length > title_length ? (title[0..title_length-4] + "...") : title
       message = "#{message_title}: #{absolute_url}"
       begin
-        status = Twitter::Base.new(config['twitter.username'], config['twitter.password']).update(message, :source => "Radiant Twitter Notifier")
+        status = Twitter::Base.new(config['twitter.username'], config['twitter.password']).update(message, :source => "radianttwitternotifier")
         # Don't trigger save callbacks
         self.class.update_all({:twitter_id => status.id}, :id => self.id)
       rescue Exception => e
