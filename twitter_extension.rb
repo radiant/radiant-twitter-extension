@@ -17,5 +17,9 @@ class TwitterExtension < Radiant::Extension
     end
     admin.page.edit.add :extended_metadata, "twitter"
     Page.class_eval { include TwitterNotification }
+    
+    if admin.respond_to?(:help)
+      admin.help.index.add :page_details, 'twitter'
+    end
   end
 end
