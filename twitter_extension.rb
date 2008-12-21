@@ -15,7 +15,7 @@ class TwitterExtension < Radiant::Extension
     unless admin.respond_to?(:settings)
       admin.tabs.add "Twitter", "/admin/twitter"
     end
-    admin.page.edit.add :extended_metadata, "twitter"
+    admin.pages.edit.add :extended_metadata, "twitter"
     Page.class_eval { include TwitterNotification }
     
     if admin.respond_to?(:help)
