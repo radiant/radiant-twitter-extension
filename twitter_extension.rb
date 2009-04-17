@@ -1,7 +1,7 @@
 # Uncomment this if you reference any of your controllers in activate
 # require_dependency 'application'
 class TwitterExtension < Radiant::Extension
-  version "1.0"
+  version "1.1"
   description "Posts notification of pages to Twitter."
   url "http://github.com/seancribbs/radiant-twitter-extension"
 
