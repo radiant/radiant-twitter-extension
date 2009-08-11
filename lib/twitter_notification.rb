@@ -17,13 +17,14 @@ module TwitterNotification
           client = Twitter::Base.new(httpauth)
           status = client.update(message, :source => "radianttwitternotifier")
           # Don't trigger save callbacks
-          self.class.update_all({:twitter_id => client.id}, :id => self.id)
+          self.class.update_all({:twitter_id => status.id}, :id => self.id)
         rescue Exception => e
           # Twitter failed... just log for now
           logger.error "Twitter Notification failure: #{e.inspect}"
         end
       end
     end
+    true
   end
 
   def absolute_url
