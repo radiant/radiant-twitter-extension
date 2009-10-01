@@ -13,3 +13,7 @@ of all of the updates to the children of that page. You can create a blog page,
 for example, and have each new post linked in your Twitter account.
 
 _Built with version `0.6.6` of the `twitter` gem._
+
+To get latest tweet(s):
+
+<r:twitter:message [ max="10" ] /> 
