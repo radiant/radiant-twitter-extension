@@ -31,14 +31,16 @@ module TwitterTags
     Usage:
     Displays the tweets from the current user's timeline:
   <r:twitter>
-    <r:tweets:each>
-      <div class="tweet">
-        <p class="text">
-          <r:tweet:text />
-          <br/> <r:tweet:created_ago /> ago from <r:tweet:source />
-        </p>
-      </div>
-    </r:tweets:each>
+    <r:tweets max="10">
+      <r:each>
+        <div class="tweet">
+          <p class="text">
+            <r:tweet:text />
+            <br/> <r:tweet:created_ago /> ago from <r:tweet:source />
+          </p>
+        </div>
+      </r:each>
+    </r:tweets>
   </r:twitter
 
   <br/>
@@ -58,10 +60,12 @@ module TwitterTags
   end
 
   desc %{
-    Retrieve a users recent tweets
+    Retrieve a users recent tweets, optional max, default 10. Usage:
+    <pre><code><r:twitter:tweets  [max="10"] /></code></pre>
   }
-  tag 'twitter:tweets' do |tag|
-    tag.locals.tweets = tag.locals.client.user_timeline #TODO define number of tweets
+  tag 'twitter:tweets' do |tag|  
+    tag.locals.max = tag.attr['max'].blank? ? 9 : tag.attr['max'].to_i - 1
+    tag.locals.tweets = tag.locals.client.user_timeline[0..(tag.locals.max)]
     tag.expand
   end
 
