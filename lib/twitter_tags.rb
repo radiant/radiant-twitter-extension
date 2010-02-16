@@ -7,16 +7,22 @@ module TwitterTags
     Usage:
     <pre><code><r:twitter:message  [max="10"] /></code></pre>
     Displays the latest status message from the current user's timeline. If you require finer grained control please use the individual tags like:
+
+  <pre><code>
   <r:twitter>
-    <r:tweets:each>
-      <div class="tweet">
-        <p class="text">
-          <r:tweet:text />
-          <br/> <r:tweet:created_ago /> ago from <r:tweet:source />
-        </p>
-      </div>
-    </r:tweets:each>
-  </r:twitter }
+    <r:tweets max="10">
+      <r:each>
+        <div class="tweet">
+          <p class="text">
+            <r:tweet:text />
+            <br/> <r:tweet:created_ago /> ago from <r:tweet:source />
+          </p>
+        </div>
+      </r:each>
+    </r:tweets>
+  </r:twitter>
+  </code></pre>
+  }
   tag 'twitter:message' do |tag|
     max=tag.attr['max'].to_i
     out = ""
@@ -32,6 +38,7 @@ module TwitterTags
     The user account defined in the Radiant config keys "twitter.password", "twitter.username" and "twitter.url_host" will be accessed.
 
     Displays the tweets from the current user's timeline:
+  <pre><code>
   <r:twitter>
     <r:tweets max="10">
       <r:each>
@@ -43,7 +50,9 @@ module TwitterTags
         </div>
       </r:each>
     </r:tweets>
-  </r:twitter
+  </r:twitter>
+  </code></pre>
+
 
   <br/>
   You can simply just use <pre><code><r:twitter:message  [max="10"] /></code></pre> if you don't require fine grained control over structure/styling.
