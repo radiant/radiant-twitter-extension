@@ -21,14 +21,16 @@ module TwitterTags
     max=tag.attr['max'].to_i
     out = ""
     twitter_status(max).each do |status|
-      text = replace_links
+      text = replace_links status.text
       out << "<p class=\"twitter_tweet\"><a class=\"twitter_user\" href=\"http://twitter.com/#{status.user.screen_name}\">#{status.user.screen_name}</a> #{text} <span class=\"twitter_time\">#{time_ago_in_words(status.created_at)} ago from #{status.source}</span></p>\n"
     end
     out
   end
 
   desc %{
-    Usage:
+    Context for the twitter tags. <br />
+    The user account defined in the Radiant config keys "twitter.password", "twitter.username" and "twitter.url_host" will be accessed.
+
     Displays the tweets from the current user's timeline:
   <r:twitter>
     <r:tweets max="10">
@@ -44,15 +46,8 @@ module TwitterTags
   </r:twitter
 
   <br/>
-  You can simply just use <pre><code><r:twitter:message  [max="10"] /></code></pre> if you don't require fine grained control.
-  }
-  tag 'twitter' do |tag|
-    tag.expand
-  end
-  
-  desc %{
-    Context for the twitter tags. <br />
-    The user account defined in the Radiant config keys "twitter.password", "twitter.username" and "twitter.url_host" will be accessed.
+  You can simply just use <pre><code><r:twitter:message  [max="10"] /></code></pre> if you don't require fine grained control over structure/styling.
+
   }
   tag 'twitter' do |tag|
     tag.locals.client = twitter_login
@@ -65,8 +60,18 @@ module TwitterTags
   }
   tag 'twitter:tweets' do |tag|  
     tag.locals.max = tag.attr['max'].blank? ? 9 : tag.attr['max'].to_i - 1
-    tag.locals.tweets = tag.locals.client.user_timeline[0..(tag.locals.max)]
-    tag.expand
+    begin
+      tag.locals.tweets = tag.locals.client.user_timeline[0..(tag.locals.max)]
+    rescue Exception => e
+      logger.error "Unable to fetch user timeline: #{e.inspect}"
+    end
+    out = ""
+    if tag.locals.tweets
+      tag.expand
+    else
+      out << "Unable to fetch user timeline. Please check the logs.."
+      return out
+    end
   end
 
   desc %{
@@ -111,7 +116,7 @@ module TwitterTags
   end
 
   desc %{
-    Renders the created ago string for the tweet e.g. Created 7 days ago...
+    Renders the created ago string for the tweet e.g. Created 7 days...
   }
   tag 'tweet:created_ago' do |tag|
     tweet = tag.locals.tweet
@@ -144,7 +149,7 @@ module TwitterTags
       client = Twitter::Base.new(httpauth)
       return client
     rescue Exception => e
-      logger.error "Twitter Notification failure: #{e.inspect}"
+      logger.error "Twitter login failure: #{e.inspect}"
     end
   end
 
