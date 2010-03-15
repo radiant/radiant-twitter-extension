@@ -23,9 +23,7 @@ module TwitterNotification
           logger.error "Twitter Notification failure: #{e.inspect}"
         end
       end
-      logger.error "i am in notify_twitter, if parent #{twitter_config['twitter.username']}"
     end
-    logger.error "i am in notify_twitter"
   end
 
   def absolute_url
