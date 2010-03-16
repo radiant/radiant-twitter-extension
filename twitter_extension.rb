@@ -13,7 +13,6 @@ class TwitterExtension < Radiant::Extension
   
   def activate
     unless admin.respond_to?(:settings)
-#      admin.tabs.add "Twitter", "/admin/twitter"
        tab "Content" do
          add_item( "Twitter", "/admin/twitter")
        end

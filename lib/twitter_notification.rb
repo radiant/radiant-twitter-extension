@@ -28,9 +28,9 @@ module TwitterNotification
 
   def absolute_url
     if twitter_config['twitter.url_host'] =~ /^http/
-      "#{config['twitter.url_host']}#{self.url}"
+      "#{twitter_config['twitter.url_host']}#{self.url}"
     else
-      "http://#{config['twitter.url_host']}#{self.url}"
+      "http://#{twitter_config['twitter.url_host']}#{self.url}"
     end
   end
 
