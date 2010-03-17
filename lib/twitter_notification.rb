@@ -13,7 +13,7 @@ module TwitterNotification
         message_title = title.length > title_length ? (title[0..title_length-4] + "...") : title
         message = "#{message_title}: #{absolute_url}"
         begin
-          httpauth = Twitter::HTTPAuth.new(config['twitter.username'], config['twitter.password'])
+          httpauth = Twitter::HTTPAuth.new(twitter_config['twitter.username'], twitter_config['twitter.password'])
           client = Twitter::Base.new(httpauth)
           status = client.update(message, :source => "radianttwitternotifier")
           # Don't trigger save callbacks
@@ -28,18 +28,18 @@ module TwitterNotification
   end
 
   def absolute_url
-    if config['twitter.url_host'] =~ /^http/
-      "#{config['twitter.url_host']}#{self.url}"
+    if twitter_config['twitter.url_host'] =~ /^http/
+      "#{twitter_config['twitter.url_host']}#{self.url}"
     else
-      "http://#{config['twitter.url_host']}#{self.url}"
+      "http://#{twitter_config['twitter.url_host']}#{self.url}"
     end
   end
 
   def twitter_configured?
-    !%w(twitter.username twitter.password twitter.url_host).any? {|k| config[k].blank? }
+    !%w(twitter.username twitter.password twitter.url_host).any? {|k| twitter_config[k].blank? }
   end
 
-  def config
+  def twitter_config
     Radiant::Config
   end
 end
