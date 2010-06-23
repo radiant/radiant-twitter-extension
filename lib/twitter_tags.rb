@@ -199,7 +199,7 @@ module TwitterTags
   }
   tag 'tweet:created_at' do |tag|
     format = tag.attr['format'] || "%c"
-    date = DateTime.new(tag.locals.tweet.created_at)
+    date = DateTime.parse(tag.locals.tweet.created_at)
     date.strftime(format)
   end
 
