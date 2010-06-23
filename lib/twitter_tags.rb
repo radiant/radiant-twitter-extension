@@ -156,9 +156,18 @@ module TwitterTags
     tag.expand
   end
 
+  desc %{
+    Creates the context for a single tweet user.
+  }
+  tag 'twitter:list:each:tweet:user' do |tag|
+    tag.expand
+  end
+
     [:coordinates, :in_reply_to_screen_name, :truncated, :in_reply_to_user_id, :in_reply_to_status_id, :source, :place, :geo, :favorited, :contributors, :id].each do |method|
     desc %{
       Renders the @#{method.to_s}@ attribute of the tweet
+    <pre><code><r:tweet:#{method.to_s}/></code></pre>
+
     }
     tag "tweet:#{method.to_s}" do |tag|
       tag.locals.tweet.send(method) rescue nil
@@ -168,6 +177,7 @@ module TwitterTags
       [:time_zone, :description, :lang, :profile_link_color, :profile_background_image_url, :profile_sidebar_fill_color, :following, :profile_background_tile, :created_at, :statuses_count,:profile_sidebar_border_color,:profile_use_background_image,:followers_count,:contributors_enabled,:notifications,:friends_count,:protected,:url,:profile_image_url,:geo_enabled,:profile_background_color,:name,:favourites_count,:location,:screen_name, :id,:verified,:utc_offset,:profile_text_color].each do |method|
     desc %{
       Renders the @#{method.to_s}@ attribute of the tweet user
+    <pre><code><r:tweet:user:#{method.to_s}/></code></pre>
     }
     tag "tweet:user:#{method.to_s}" do |tag|
       tag.locals.tweet.user.send(method) rescue nil
@@ -184,10 +194,13 @@ module TwitterTags
 
   desc %{
     Renders the created_at timestamp for the current tweet.
+    <pre><code><r:tweet:user:created_at [format="%c"]/></code></pre>
+
   }
   tag 'tweet:created_at' do |tag|
-    tweet = tag.locals.tweet
-    tweet.created_at
+    format = tag.attr['format'] || "%c"
+    date = DateTime.new(tag.locals.tweet.created_at)
+    date.strftime(format)
   end
 
   desc %{
