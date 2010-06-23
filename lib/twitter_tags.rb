@@ -65,12 +65,14 @@ module TwitterTags
 
   desc %{
     Retrieve a users recent tweets, optional max, default 10. Usage:
-    <pre><code><r:twitter:tweets  [max="10"] /></code></pre>
+    <pre><code><r:twitter:tweets  [max="10"]  [user="username"]/></code></pre>
   }
   tag 'twitter:tweets' do |tag|  
     tag.locals.max = tag.attr['max'].blank? ? 9 : tag.attr['max'].to_i - 1
+    tag.locals.user = tag.attr['user'].blank? ? twitter_config['twitter.username'] : tag.attr['user']
+
     begin
-      tag.locals.tweets = tag.locals.client.user_timeline[0..(tag.locals.max)]
+      tag.locals.tweets = Twitter.timeline(tag.locals.user, {:page => 1, :per_page => tag.locals.max} )
     rescue Exception => e
       logger.error "Unable to fetch user timeline: #{e.inspect}"
     end
@@ -82,6 +84,45 @@ module TwitterTags
       return out
     end
   end
+
+  desc %{
+    Retrieve a users recent list, optional max, default 10. Usage:
+    <pre><code><r:twitter:list list="mylist" [user="username"] [max="10"]  /></code></pre>
+  }
+  tag 'twitter:list' do |tag|
+    tag.locals.max = tag.attr['max'].blank? ? 9 : tag.attr['max'].to_i - 1
+    tag.locals.user = tag.attr['user'].blank? ? twitter_config['twitter.username'] : tag.attr['user']
+    begin
+      tag.locals.tweets = Twitter.list_timeline(tag.locals.user,tag.attr['list'], {:page => 1, :per_page => tag.locals.max} )
+    rescue Exception => e
+      logger.error "Unable to fetch user list: #{e.inspect}"
+    end
+    out = ""
+    if tag.locals.tweets
+      tag.expand
+    else
+      out << "Unable to fetch user list. Please check the logs.."
+      return out
+    end
+  end
+
+  desc %{
+    Returns the number of tweets.
+  }
+  tag 'twitter:list:length' do |tag|
+    tag.locals.tweets.length
+  end
+
+  desc %{
+    Loops through a users tweets.
+  }
+  tag 'twitter:list:each' do |tag|
+    tag.locals.tweets.collect do |tweet|
+      tag.locals.tweet = tweet
+      tag.expand
+    end
+  end
+
 
   desc %{
     Returns the number of tweets.
@@ -108,6 +149,31 @@ module TwitterTags
     tag.expand
   end
 
+    desc %{
+    Creates the context for a single tweet.
+  }
+  tag 'twitter:list:each:tweet' do |tag|
+    tag.expand
+  end
+
+    [:coordinates, :in_reply_to_screen_name, :truncated, :in_reply_to_user_id, :in_reply_to_status_id, :source, :place, :geo, :favorited, :contributors, :id].each do |method|
+    desc %{
+      Renders the @#{method.to_s}@ attribute of the tweet
+    }
+    tag "tweet:#{method.to_s}" do |tag|
+      tag.locals.tweet.send(method) rescue nil
+    end
+    end
+
+      [:time_zone, :description, :lang, :profile_link_color, :profile_background_image_url, :profile_sidebar_fill_color, :following, :profile_background_tile, :created_at, :statuses_count,:profile_sidebar_border_color,:profile_use_background_image,:followers_count,:contributors_enabled,:notifications,:friends_count,:protected,:url,:profile_image_url,:geo_enabled,:profile_background_color,:name,:favourites_count,:location,:screen_name, :id,:verified,:utc_offset,:profile_text_color].each do |method|
+    desc %{
+      Renders the @#{method.to_s}@ attribute of the tweet user
+    }
+    tag "tweet:user:#{method.to_s}" do |tag|
+      tag.locals.tweet.user.send(method) rescue nil
+    end
+    end
+
   desc %{
     Renders the text for the current tweet.
   }
@@ -132,16 +198,10 @@ module TwitterTags
     time_ago_in_words tweet.created_at
   end
 
-  desc %{
-    Renders the source for the current tweet.
-  }
-  tag 'tweet:source' do |tag|
-    tweet = tag.locals.tweet
-    tweet.source
-  end
 
   private
-    def twitter_status(max = 1)
+
+   def twitter_status(max = 1)
       begin
         max = 1 if (max>10) or (max< 1)
         client = twitter_login
@@ -154,8 +214,10 @@ module TwitterTags
 
   def twitter_login
     begin
-      httpauth = Twitter::HTTPAuth.new(config['twitter.username'], config['twitter.password'])
-      client = Twitter::Base.new(httpauth)
+      oauth = Twitter::OAuth.new(twitter_config['twitter.token'], twitter_config['twitter.secret'])
+      oauth.authorize_from_access(twitter_config["twitter.#{twitter_config['twitter.username']}.atoken"], twitter_config["twitter.#{twitter_config['twitter.username']}.asecret"])
+      client = Twitter::Base.new(oauth)
+
       return client
     rescue Exception => e
       logger.error "Twitter login failure: #{e.inspect}"
@@ -163,6 +225,7 @@ module TwitterTags
   end
 
   def replace_links(text)
-    text.gsub(/(http:\/\/[^\s]*)/, '<a class="twitter_link" href="\1">\1</a>')
+    text = text.gsub(/(http:\/\/[^\s]*)/, '<a class="twitter_link" href="\1">\1</a>')
+    text.gsub(/@(\w*)/, '<a class="twitter_link" href="http://twitter.com/\1">@\1</a>')
   end
 end

@@ -4,7 +4,7 @@ TwitterController.class_eval { def rescue_action(e) raise e; end }
 
 describe TwitterController, :type => :controller do
   controller_name 'twitter'
-  scenario :users
+  dataset :users
   before :each do
     login_as :existing
   end
