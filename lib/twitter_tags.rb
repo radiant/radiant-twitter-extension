@@ -174,13 +174,59 @@ module TwitterTags
     end
     end
 
-      [:time_zone, :description, :lang, :profile_link_color, :profile_background_image_url, :profile_sidebar_fill_color, :following, :profile_background_tile, :created_at, :statuses_count,:profile_sidebar_border_color,:profile_use_background_image,:followers_count,:contributors_enabled,:notifications,:friends_count,:protected,:url,:profile_image_url,:geo_enabled,:profile_background_color,:name,:favourites_count,:location,:screen_name, :id,:verified,:utc_offset,:profile_text_color].each do |method|
+      [:coordinates, :in_reply_to_screen_name, :truncated, :in_reply_to_user_id, :in_reply_to_status_id, :source, :place, :geo, :favorited, :contributors, :id].each do |method|
+    desc %{
+      expands if the property has a value
+    <pre><code><r:tweet:if_#{method.to_s}/></code></pre>
+
+    }
+    tag "tweet:#{method.to_s}" do |tag|
+      value = tag.locals.tweet.send(method) rescue nil
+      tag.expand if !value.nil? && !value.empty?
+    end
+      end
+
+        [:coordinates, :in_reply_to_screen_name, :truncated, :in_reply_to_user_id, :in_reply_to_status_id, :source, :place, :geo, :favorited, :contributors, :id].each do |method|
+    desc %{
+      expands if the property has no value
+    <pre><code><r:tweet:unless_#{method.to_s}/></code></pre>
+
+    }
+    tag "tweet:unless_#{method.to_s}" do |tag|
+      value = tag.locals.tweet.send(method) rescue nil
+      tag.expand if value.nil? || value.empty?
+    end
+    end
+    user_params = [:time_zone, :description, :lang, :profile_link_color, :profile_background_image_url, :profile_sidebar_fill_color, :following, :profile_background_tile, :created_at, :statuses_count,:profile_sidebar_border_color,:profile_use_background_image,:followers_count,:contributors_enabled,:notifications,:friends_count,:protected,:url,:profile_image_url,:geo_enabled,:profile_background_color,:name,:favourites_count,:location,:screen_name, :id,:verified,:utc_offset,:profile_text_color]
+      user_params.each do |method|
     desc %{
       Renders the @#{method.to_s}@ attribute of the tweet user
     <pre><code><r:tweet:user:#{method.to_s}/></code></pre>
     }
     tag "tweet:user:#{method.to_s}" do |tag|
       tag.locals.tweet.user.send(method) rescue nil
+    end
+      end
+
+        user_params.each do |method|
+    desc %{
+      expands if @#{method.to_s}@ attribute of the tweet user has a value
+    <pre><code><r:tweet:user:if_#{method.to_s}/></code></pre>
+    }
+    tag "tweet:user:if_#{method.to_s}" do |tag|
+      value = tag.locals.tweet.user.send(method) rescue nil
+      tag.expand if !value.nil? && !value.empty?
+    end
+        end
+
+          user_params.each do |method|
+    desc %{
+      expands if @#{method.to_s}@ attribute of the tweet user has no value
+    <pre><code><r:tweet:user:unless_#{method.to_s}/></code></pre>
+    }
+    tag "tweet:user:unless_#{method.to_s}" do |tag|
+      value = tag.locals.tweet.user.send(method) rescue nil
+      tag.expand if value.nil? || value.empty?
     end
     end
 
