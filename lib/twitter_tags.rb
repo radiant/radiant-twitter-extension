@@ -72,7 +72,7 @@ module TwitterTags
     tag.locals.user = tag.attr['user'].blank? ? twitter_config['twitter.username'] : tag.attr['user']
     tag.locals.tweets = JSON.parse(APICache.get("timeline_#{tag.locals.user}_#{tag.locals.max}".dup, :cache => 3600, :valid => :forever) do
       begin
-        Twitter.timeline(tag.locals.user, {:page => 1, :per_page => tag.locals.max} )
+        Twitter.timeline(tag.locals.user, {:page => 1, :per_page => tag.locals.max} ).to_json
       rescue Exception => e
         logger.error "Unable to fetch user timeline: #{e.inspect}"
       end
