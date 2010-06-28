@@ -1,14 +1,17 @@
-# Uncomment this if you reference any of your controllers in activate
-# require_dependency 'application'
 class TwitterExtension < Radiant::Extension
-  version "1.1"
-  description "Posts notification of pages to Twitter."
-  url "http://github.com/seancribbs/radiant-twitter-extension"
+  version "1.2"
+  description "Posts notification of pages to Twitter and displays"
+  url "http://github.com/ehaselwanter/radiant-twitter-extension"
 
   define_routes do |map|
     map.with_options :controller => 'twitter' do |t|
       t.twitter '/admin/twitter', :action => "edit"
     end
+  end
+
+  extension_config do |config|
+    config.gem 'api_cache', :source => 'http://gemcutter.org'
+    config.gem 'moneta', :source => 'http://gemcutter.org'
   end
   
   def activate
@@ -19,6 +22,12 @@ class TwitterExtension < Radiant::Extension
     end
     admin.pages.edit.add :extended_metadata, "twitter"
     Page.class_eval { include TwitterNotification, TwitterTags }
+
+    require 'api_cache'
+    require 'moneta'
+    require 'moneta/file'
+
+    APICache.store = Moneta::File.new(:path => File.join(RAILS_ROOT,"tmp", "twitter_file_cache"))
     
     if admin.respond_to?(:help)
       admin.help.index.add :page_details, 'twitter'
