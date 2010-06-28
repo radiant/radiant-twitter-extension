@@ -68,7 +68,7 @@ module TwitterTags
     <pre><code><r:twitter:tweets  [max="10"]  [user="username"]/></code></pre>
   }
   tag 'twitter:tweets' do |tag|  
-    tag.locals.max = tag.attr['max'].blank? ? 9 : tag.attr['max'].to_i - 1
+    tag.locals.max = tag.attr['max'].blank? ? 3 : tag.attr['max'].to_i - 1
     tag.locals.user = tag.attr['user'].blank? ? twitter_config['twitter.username'] : tag.attr['user']
     tag.locals.tweets = JSON.parse(APICache.get("timeline_#{tag.locals.user}_#{tag.locals.max}".dup, :cache => 3600, :valid => :forever) do
       begin
@@ -91,7 +91,7 @@ module TwitterTags
     <pre><code><r:twitter:list list="mylist" [user="username"] [max="10"]  /></code></pre>
   }
   tag 'twitter:list' do |tag|
-    tag.locals.max = tag.attr['max'].blank? ? 9 : tag.attr['max'].to_i - 1
+    tag.locals.max = tag.attr['max'].blank? ? 3 : tag.attr['max'].to_i - 1
     tag.locals.user = tag.attr['user'].blank? ? twitter_config['twitter.username'] : tag.attr['user']
     tag.locals.tweets = JSON.parse(APICache.get("list_timeline_#{tag.locals.user}_#{tag.attr['list']}_#{tag.locals.max}".dup, :cache => 3600, :valid => :forever) do
       begin
