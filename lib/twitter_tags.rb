@@ -70,11 +70,12 @@ module TwitterTags
   tag 'twitter:tweets' do |tag|  
     tag.locals.max = tag.attr['max'].blank? ? 3 : tag.attr['max'].to_i - 1
     tag.locals.user = tag.attr['user'].blank? ? twitter_config['twitter.username'] : tag.attr['user']
-    tag.locals.tweets = JSON.parse(APICache.get("timeline_#{tag.locals.user}_#{tag.locals.max}".dup, :cache => 3600, :valid => :forever) do
+    tag.locals.tweets = JSON.parse(APICache.get("timeline_#{tag.locals.user}_#{tag.locals.max}".dup, :cache => 3600, :valid => :forever, :fail => {}) do
       begin
         (Twitter.timeline(tag.locals.user, {:page => 1, :per_page => tag.locals.max} )[0..(tag.locals.max)]).to_json
       rescue Exception => e
         logger.error "Unable to fetch user timeline: #{e.inspect}"
+        raise APICache::InvalidResponse
       end
     end).map{|hash| Hashie::Mash.new(hash)}
     out = ""
@@ -184,13 +185,13 @@ module TwitterTags
     <pre><code><r:tweet:if_#{method.to_s}/></code></pre>
 
     }
-    tag "tweet:#{method.to_s}" do |tag|
+    tag "tweet:if_#{method.to_s}" do |tag|
       value = tag.locals.tweet.send(method) rescue nil
       tag.expand if !value.nil? && !value.empty?
     end
       end
 
-        [:coordinates, :in_reply_to_screen_name, :truncated, :in_reply_to_user_id, :in_reply_to_status_id, :source, :place, :geo, :favorited, :contributors, :id].each do |method|
+  [:coordinates, :in_reply_to_screen_name, :truncated, :in_reply_to_user_id, :in_reply_to_status_id, :source, :place, :geo, :favorited, :contributors, :id].each do |method|
     desc %{
       expands if the property has no value
     <pre><code><r:tweet:unless_#{method.to_s}/></code></pre>
@@ -200,7 +201,21 @@ module TwitterTags
       value = tag.locals.tweet.send(method) rescue nil
       tag.expand if value.nil? || value.empty?
     end
+  end
+
+  [:date, :created_at].each do |method|
+    desc %{
+      renders the  created_at timestamp of the tweet
+    <pre><code><r:tweet:#{method.to_s} [format="%c"]/></code></pre>
+
+    }
+    tag "tweet:#{method.to_s}" do |tag|
+      format = tag.attr['format'] || "%c"
+      date = DateTime.parse(tag.locals.tweet.created_at)
+      I18n.l date , :format => format
     end
+  end
+
     user_params = [:time_zone, :description, :lang, :profile_link_color, :profile_background_image_url, :profile_sidebar_fill_color, :following, :profile_background_tile, :created_at, :statuses_count,:profile_sidebar_border_color,:profile_use_background_image,:followers_count,:contributors_enabled,:notifications,:friends_count,:protected,:url,:profile_image_url,:geo_enabled,:profile_background_color,:name,:favourites_count,:location,:screen_name, :id,:verified,:utc_offset,:profile_text_color]
       user_params.each do |method|
     desc %{
@@ -242,16 +257,6 @@ module TwitterTags
     replace_links tweet.text
   end
 
-  desc %{
-    Renders the created_at timestamp for the current tweet.
-    <pre><code><r:tweet:user:created_at [format="%c"]/></code></pre>
-
-  }
-  tag 'tweet:created_at' do |tag|
-    format = tag.attr['format'] || "%c"
-    date = DateTime.parse(tag.locals.tweet.created_at)
-    date.strftime(format)
-  end
 
   desc %{
     Renders the created ago string for the tweet e.g. Created 7 days...

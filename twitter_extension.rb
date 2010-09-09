@@ -28,8 +28,8 @@ class TwitterExtension < Radiant::Extension
 #    require 'moneta/file'
     require 'moneta/memory'
 
-#    APICache.store = Moneta::File.new(:path => File.join(RAILS_ROOT,"tmp", "twitter_file_cache"))
-    APICache.store = Moneta::Memory.new 
+#    APICache.store = Moneta::File.new(:path => File.join(RAILS_ROOT,"tmp", "moneta_file_cache"))
+    APICache.store = Moneta::Memory.new
     
     if admin.respond_to?(:help)
       admin.help.index.add :page_details, 'twitter'
