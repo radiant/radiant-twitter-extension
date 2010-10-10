@@ -10,6 +10,9 @@ class TwitterExtension < Radiant::Extension
   end
 
   extension_config do |config|
+    config.gem "addressable", :version => '~> 2.0.1', :lib => false
+    config.gem "do_sqlite3", :version => '0.9.11'
+    config.gem "dm-core", :version => '0.9.10'
     config.gem 'api_cache', :source => 'http://gemcutter.org'
     config.gem 'moneta', :source => 'http://gemcutter.org'
   end
@@ -24,12 +27,16 @@ class TwitterExtension < Radiant::Extension
     Page.class_eval { include TwitterNotification, TwitterTags }
 
     require 'api_cache'
+    require "dm-core" 
     require 'moneta'
 #    require 'moneta/file'
-    require 'moneta/memory'
+#    require 'moneta/memory' 
+
+    require "moneta/datamapper"
 
 #    APICache.store = Moneta::File.new(:path => File.join(RAILS_ROOT,"tmp", "moneta_file_cache"))
-    APICache.store = Moneta::Memory.new
+#    APICache.store = Moneta::Memory.new
+     APICache.store = Moneta::DataMapper.new(:setup => "sqlite3://#{File.join(RAILS_ROOT,"tmp", "moneta_datamapper_cache.db")}")
     
     if admin.respond_to?(:help)
       admin.help.index.add :page_details, 'twitter'
