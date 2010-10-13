@@ -11,8 +11,8 @@ class TwitterExtension < Radiant::Extension
 
   extension_config do |config|
     config.gem "addressable", :version => '~> 2.0.1', :lib => false
-    config.gem "do_sqlite3", :version => '0.9.11'
-    config.gem "dm-core", :version => '0.9.10'
+    config.gem "do_sqlite3", :version => '0.9.11' , :lib => false
+    config.gem "dm-core", :version => '0.9.10', :lib => false
     config.gem 'api_cache', :source => 'http://gemcutter.org'
     config.gem 'moneta', :source => 'http://gemcutter.org'
   end
@@ -27,10 +27,11 @@ class TwitterExtension < Radiant::Extension
     Page.class_eval { include TwitterNotification, TwitterTags }
 
     require 'api_cache'
-    require "dm-core" 
+    require "dm-core"
     require 'moneta'
 #    require 'moneta/file'
 #    require 'moneta/memory' 
+    Extlib::Inflection.word("preferences", "preferences")
 
     require "moneta/datamapper"
 
