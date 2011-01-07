@@ -70,7 +70,7 @@ module TwitterTags
   tag 'twitter:tweets' do |tag|  
     tag.locals.max = tag.attr['max'].blank? ? 3 : tag.attr['max'].to_i - 1
     tag.locals.user = tag.attr['user'].blank? ? twitter_config['twitter.username'] : tag.attr['user']
-    tag.locals.tweets = JSON.parse(Rails.cache.fetch("timeline_#{tag.locals.user}_#{tag.locals.max}",:expires_in => 1.minutes ) do
+    tag.locals.tweets = JSON.parse(Rails.cache.fetch("timeline_#{tag.locals.user}_#{tag.locals.max}",:expires_in => twitter_expires_in ) do
       result = {}
       begin
         result = Twitter.timeline(tag.locals.user, {:page => 1, :per_page => tag.locals.max} )[0..(tag.locals.max)].to_json
@@ -96,7 +96,7 @@ module TwitterTags
   tag 'twitter:list' do |tag|
     tag.locals.max = tag.attr['max'].blank? ? 3 : tag.attr['max'].to_i - 1
     tag.locals.user = tag.attr['user'].blank? ? twitter_config['twitter.username'] : tag.attr['user']
-    tag.locals.tweets = JSON.parse(Rails.cache.fetch("list_timeline_#{tag.locals.user}_#{tag.attr['list']}_#{tag.locals.max}",:expire_in => 1.minutes  ) do
+    tag.locals.tweets = JSON.parse(Rails.cache.fetch("list_timeline_#{tag.locals.user}_#{tag.attr['list']}_#{tag.locals.max}",:expire_in => twitter_expires_in  ) do
       result = {}
       begin
         result = Twitter.list_timeline(tag.locals.user,tag.attr['list'], {:page => 1, :per_page => tag.locals.max} ).to_json
@@ -299,5 +299,11 @@ module TwitterTags
   def replace_links(text)
     text = text.gsub(/(http:\/\/[^\s]*)/, '<a class="twitter_link" href="\1">\1</a>')
     text.gsub(/@(\w*)/, '<a class="twitter_link" href="http://twitter.com/\1">@\1</a>')
+  end
+
+  def twitter_expires_in
+    return @twitter_expires_in if @twitter_expires_in
+    config_expires_in = Radiant::Config["twitter.expires_in"] ? eval(Radiant::Config["twitter.expires_in"]) : nil
+    @twitter_expires_in = config_expires_in || 5.minutes
   end
 end
