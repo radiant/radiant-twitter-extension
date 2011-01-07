@@ -70,13 +70,15 @@ module TwitterTags
   tag 'twitter:tweets' do |tag|  
     tag.locals.max = tag.attr['max'].blank? ? 3 : tag.attr['max'].to_i - 1
     tag.locals.user = tag.attr['user'].blank? ? twitter_config['twitter.username'] : tag.attr['user']
-    tag.locals.tweets = JSON.parse(APICache.get("timeline_#{tag.locals.user}_#{tag.locals.max}".dup, :cache => 3600, :valid => :forever, :fail => "{}") do
+    tag.locals.tweets = JSON.parse(Rails.cache.fetch("timeline_#{tag.locals.user}_#{tag.locals.max}",:expires_in => 1.minutes ) do
+      result = {}
       begin
         result = Twitter.timeline(tag.locals.user, {:page => 1, :per_page => tag.locals.max} )[0..(tag.locals.max)].to_json
       rescue Exception => e
         logger.error "Unable to fetch user timeline: #{e.inspect}"
-        raise APICache::InvalidResponse
+        result = {}
       end
+      result
     end).map{|hash| Hashie::Mash.new(hash)}
     out = ""
     if tag.locals.tweets
@@ -94,14 +96,15 @@ module TwitterTags
   tag 'twitter:list' do |tag|
     tag.locals.max = tag.attr['max'].blank? ? 3 : tag.attr['max'].to_i - 1
     tag.locals.user = tag.attr['user'].blank? ? twitter_config['twitter.username'] : tag.attr['user']
-    tag.locals.tweets = JSON.parse(APICache.get("list_timeline_#{tag.locals.user}_#{tag.attr['list']}_#{tag.locals.max}".dup, :cache => 3600, :valid => :forever, :fail => "{}") do
+    tag.locals.tweets = Rails.cache.fetch("list_timeline_#{tag.locals.user}_#{tag.attr['list']}_#{tag.locals.max}",:expire_in => 1.minutes  ) do
+      result = {}
       begin
-        Twitter.list_timeline(tag.locals.user,tag.attr['list'], {:page => 1, :per_page => tag.locals.max} ).to_json
+        result = Twitter.list_timeline(tag.locals.user,tag.attr['list'], {:page => 1, :per_page => tag.locals.max} )
       rescue Exception => e
         logger.error "Unable to fetch user list: #{e.inspect}"
-        raise APICache::InvalidResponse
       end
-    end).map{|hash| Hashie::Mash.new(hash)}
+      result
+    end
     out = ""
     if tag.locals.tweets
       tag.expand
