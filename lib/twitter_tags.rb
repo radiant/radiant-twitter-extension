@@ -73,7 +73,7 @@ module TwitterTags
     tag.locals.tweets = JSON.parse(Rails.cache.fetch("timeline_#{tag.locals.user}_#{tag.locals.max}",:expires_in => twitter_expires_in ) do
       result = {}
       begin
-        result = Twitter.timeline(tag.locals.user, {:page => 1, :per_page => tag.locals.max} )[0..(tag.locals.max)].to_json
+        result = Twitter.user_timeline(tag.locals.user, {:page => 1, :per_page => tag.locals.max} )[0..(tag.locals.max)].to_json
       rescue Exception => e
         logger.error "Unable to fetch user timeline: #{e.inspect}"
         result = {}
