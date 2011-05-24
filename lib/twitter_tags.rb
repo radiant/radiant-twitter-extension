@@ -1,4 +1,6 @@
 require 'twitter'
+require 'hashie'
+
 module TwitterTags
   include ActionView::Helpers::DateHelper
   include Radiant::Taggable
