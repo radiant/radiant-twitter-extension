@@ -288,9 +288,13 @@ module TwitterTags
 
   def twitter_login
     begin
-      oauth = Twitter::OAuth.new(twitter_config['twitter.token'], twitter_config['twitter.secret'])
-      oauth.authorize_from_access(twitter_config["twitter.#{twitter_config['twitter.username']}.atoken"], twitter_config["twitter.#{twitter_config['twitter.username']}.asecret"])
-      client = Twitter::Base.new(oauth)
+      Twitter.configure do |config|
+      config.consumer_key = twitter_config['twitter.token']
+      config.consumer_secret = twitter_config['twitter.secret']
+      config.oauth_token = twitter_config["twitter.#{twitter_config['twitter.username']}.atoken"]
+      config.oauth_token_secret =  twitter_config["twitter.#{twitter_config['twitter.username']}.asecret"]
+    end
+      client = Twitter::Client.new
 
       return client
     rescue Exception => e
