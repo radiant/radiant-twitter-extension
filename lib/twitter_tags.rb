@@ -7,7 +7,7 @@ module TwitterTags
 
   desc %{
     Usage:
-    <pre><code><r:twitter:message  [max="10"] /></code></pre>
+    <pre><code><r:twitter:message [max="10"] /></code></pre>
     Displays the latest status message from the current user's timeline. If you require finer grained control please use the individual tags like:
 
   <pre><code>
@@ -37,7 +37,7 @@ module TwitterTags
 
   desc %{
     Context for the twitter tags. <br />
-    The user account defined in the Radiant config keys "twitter.password", "twitter.username" and "twitter.url_host" will be accessed.
+    The user account defined in the Radiant config keys "twitter.password", "twitter.username" and "site.host" will be accessed.
 
     Displays the tweets from the current user's timeline:
   <pre><code>
@@ -71,7 +71,7 @@ module TwitterTags
   }
   tag 'twitter:tweets' do |tag|  
     tag.locals.max = tag.attr['max'].blank? ? 3 : tag.attr['max'].to_i - 1
-    tag.locals.user = tag.attr['user'].blank? ? twitter_config['twitter.username'] : tag.attr['user']
+    tag.locals.user = tag.attr['user'].blank? ? config['twitter.username'] : tag.attr['user']
     tag.locals.tweets = JSON.parse(Rails.cache.fetch("timeline_#{tag.locals.user}_#{tag.locals.max}",:expires_in => twitter_expires_in ) do
       result = {}
       begin
@@ -97,7 +97,7 @@ module TwitterTags
   }
   tag 'twitter:list' do |tag|
     tag.locals.max = tag.attr['max'].blank? ? 3 : tag.attr['max'].to_i - 1
-    tag.locals.user = tag.attr['user'].blank? ? twitter_config['twitter.username'] : tag.attr['user']
+    tag.locals.user = tag.attr['user'].blank? ? config['twitter.username'] : tag.attr['user']
     tag.locals.tweets = JSON.parse(Rails.cache.fetch("list_timeline_#{tag.locals.user}_#{tag.attr['list']}_#{tag.locals.max}",:expire_in => twitter_expires_in  ) do
       result = {}
       begin
@@ -223,36 +223,32 @@ module TwitterTags
   end
 
     user_params = [:time_zone, :description, :lang, :profile_link_color, :profile_background_image_url, :profile_sidebar_fill_color, :following, :profile_background_tile, :created_at, :statuses_count,:profile_sidebar_border_color,:profile_use_background_image,:followers_count,:contributors_enabled,:notifications,:friends_count,:protected,:url,:profile_image_url,:geo_enabled,:profile_background_color,:name,:favourites_count,:location,:screen_name, :id,:verified,:utc_offset,:profile_text_color]
-      user_params.each do |method|
-    desc %{
-      Renders the @#{method.to_s}@ attribute of the tweet user
-    <pre><code><r:tweet:user:#{method.to_s}/></code></pre>
-    }
-    tag "tweet:user:#{method.to_s}" do |tag|
-      tag.locals.tweet.user.send(method) rescue nil
-    end
+    user_params.each do |method|
+      desc %{
+        Renders the @#{method.to_s}@ attribute of the tweet user
+        <pre><code><r:tweet:user:#{method.to_s}/></code></pre>
+      }
+      tag "tweet:user:#{method.to_s}" do |tag|
+        tag.locals.tweet.user.send(method) rescue nil
       end
 
-        user_params.each do |method|
-    desc %{
-      expands if @#{method.to_s}@ attribute of the tweet user has a value
-    <pre><code><r:tweet:user:if_#{method.to_s}/></code></pre>
-    }
-    tag "tweet:user:if_#{method.to_s}" do |tag|
-      value = tag.locals.tweet.user.send(method) rescue nil
-      tag.expand if !value.nil? && !value.empty?
-    end
-        end
+      desc %{
+        expands if @#{method.to_s}@ attribute of the tweet user has a value
+        <pre><code><r:tweet:user:if_#{method.to_s}/></code></pre>
+      }
+      tag "tweet:user:if_#{method.to_s}" do |tag|
+        value = tag.locals.tweet.user.send(method) rescue nil
+        tag.expand if !value.nil? && !value.empty?
+      end
 
-          user_params.each do |method|
-    desc %{
-      expands if @#{method.to_s}@ attribute of the tweet user has no value
-    <pre><code><r:tweet:user:unless_#{method.to_s}/></code></pre>
-    }
-    tag "tweet:user:unless_#{method.to_s}" do |tag|
-      value = tag.locals.tweet.user.send(method) rescue nil
-      tag.expand if value.nil? || value.empty?
-    end
+      desc %{
+        expands if @#{method.to_s}@ attribute of the tweet user has no value
+        <pre><code><r:tweet:user:unless_#{method.to_s}/></code></pre>
+      }
+      tag "tweet:user:unless_#{method.to_s}" do |tag|
+        value = tag.locals.tweet.user.send(method) rescue nil
+        tag.expand if value.nil? || value.empty?
+      end
     end
 
   desc %{
@@ -263,7 +259,6 @@ module TwitterTags
     replace_links tweet.text
   end
 
-
   desc %{
     Renders the created ago string for the tweet e.g. Created 7 days...
   }
@@ -272,12 +267,11 @@ module TwitterTags
     time_ago_in_words tweet.created_at
   end
 
-
-  private
+private
 
    def twitter_status(max = 1)
       begin
-        max = 1 if (max>10) or (max< 1)
+        max = 1 if (max > 10) or (max < 1)
         client = twitter_login
         client.user_timeline[0..(max-1)]
       rescue Exception => e
@@ -287,19 +281,15 @@ module TwitterTags
     end
 
   def twitter_login
-    begin
-      Twitter.configure do |config|
-      config.consumer_key = twitter_config['twitter.token']
-      config.consumer_secret = twitter_config['twitter.secret']
-      config.oauth_token = twitter_config["twitter.#{twitter_config['twitter.username']}.atoken"]
-      config.oauth_token_secret =  twitter_config["twitter.#{twitter_config['twitter.username']}.asecret"]
+    Twitter.configure do |config|
+      config.consumer_key = config['twitter.token']
+      config.consumer_secret = config['twitter.secret']
+      config.oauth_token = config["twitter.#{config['twitter.username']}.atoken"]
+      config.oauth_token_secret =  config["twitter.#{config['twitter.username']}.asecret"]
     end
-      client = Twitter::Client.new
-
-      return client
-    rescue Exception => e
-      logger.error "Twitter login failure: #{e.inspect}"
-    end
+    Twitter::Client.new
+  rescue Exception => e
+    logger.error "Twitter login failure: #{e.inspect}"
   end
 
   def replace_links(text)
@@ -308,8 +298,6 @@ module TwitterTags
   end
 
   def twitter_expires_in
-    return @twitter_expires_in if @twitter_expires_in
-    config_expires_in = Radiant::Config["twitter.expires_in"] ? eval(Radiant::Config["twitter.expires_in"]) : nil
-    @twitter_expires_in = config_expires_in || 5.minutes
+    @twitter_expires_in ||= (Radiant::Config["twitter.expires_in"] || 5).to_i.minutes
   end
 end

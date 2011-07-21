@@ -1,46 +1,25 @@
 class TwitterExtension < Radiant::Extension
-  version "1.2"
-  description "Posts notification of pages to Twitter and displays"
-  url "http://github.com/ehaselwanter/radiant-twitter-extension"
-
-  define_routes do |map|
-    map.with_options :controller => 'twitter' do |t|
-      t.twitter '/admin/twitter', :action => "edit"
-    end
-  end
-
-  extension_config do |config|
-#    config.gem "addressable", :version => '~> 2.0.1', :lib => false
-#    config.gem "do_sqlite3", :version => '0.9.11' , :lib => false
-#    config.gem "dm-core", :version => '0.9.10', :lib => false
-#    config.gem 'api_cache', :source => 'http://gemcutter.org'
-#    config.gem 'moneta', :source => 'http://gemcutter.org'
-  end
+  version RadiantTwitterExtension::VERSION
+  description RadiantTwitterExtension::DESCRIPTION
+  url RadiantTwitterExtension::URL
   
   def activate
-    unless admin.respond_to?(:settings)
-       tab "Content" do
-         add_item( "Twitter", "/admin/twitter")
-       end
-    end
-    admin.pages.edit.add :extended_metadata, "twitter"
-    Page.class_eval { include TwitterNotification, TwitterTags }
-
-    require 'api_cache'
- #   require "dm-core"
-    require 'moneta'
-#    require 'moneta/file'
-    require 'moneta/memory' 
-#    Extlib::Inflection.word("preferences", "preferences")
-
- #   require "moneta/datamapper"
-
-#    APICache.store = Moneta::File.new(:path => File.join(RAILS_ROOT,"tmp", "moneta_file_cache"))
-    APICache.store = Moneta::Memory.new
-#     APICache.store = Moneta::DataMapper.new(:setup => "sqlite3://#{File.join(RAILS_ROOT,"tmp", "moneta_datamapper_cache.db")}")
+    Page.send :include, TwitterNotification             # tweet page title upon publication
+    Page.send :include, TwitterTags                     # radius tags to display twitter search results
     
-    if admin.respond_to?(:help)
-      admin.help.index.add :page_details, 'twitter'
+    admin.pages.edit.add :extended_metadata, "twitter"  # toggle twitter-posting at parent level
+    admin.configuration.show.add :config, 'admin/configuration/twitter_show', :after => 'defaults'
+    admin.configuration.edit.add :form,   'admin/configuration/twitter_edit', :after => 'edit_defaults' 
+  end
+end
+
+module Twitter
+  module Error
+    class LoginError < StandardError
+      def initialize(message = "Sorry: group problem"); super end
     end
   end
 end
+
+
+
