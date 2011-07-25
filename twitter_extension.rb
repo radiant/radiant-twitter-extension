@@ -1,25 +1,14 @@
-# Uncomment this if you reference any of your controllers in activate
-# require_dependency 'application'
 class TwitterExtension < Radiant::Extension
-  version "1.1"
-  description "Posts notification of pages to Twitter."
-  url "http://github.com/seancribbs/radiant-twitter-extension"
-
-  define_routes do |map|
-    map.with_options :controller => 'twitter' do |t|
-      t.twitter '/admin/twitter', :action => "edit"
-    end
-  end
+  version RadiantTwitterExtension::VERSION
+  description RadiantTwitterExtension::DESCRIPTION
+  url RadiantTwitterExtension::URL
   
   def activate
-    unless admin.respond_to?(:settings)
-      admin.tabs.add "Twitter", "/admin/twitter"
-    end
-    admin.pages.edit.add :extended_metadata, "twitter"
-    Page.class_eval { include TwitterNotification, TwitterTags }
+    Page.send :include, TwitterNotification             # tweet page title upon publication
+    Page.send :include, TwitterTags                     # radius tags to display twitter search results
     
-    if admin.respond_to?(:help)
-      admin.help.index.add :page_details, 'twitter'
-    end
+    admin.pages.edit.add :extended_metadata, "twitter"  # toggle twitter-posting at parent level
+    admin.configuration.show.add :config, 'admin/configuration/twitter_show', :after => 'defaults'
+    admin.configuration.edit.add :form,   'admin/configuration/twitter_edit', :after => 'edit_defaults' 
   end
 end

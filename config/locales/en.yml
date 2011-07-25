@@ -1,0 +1,10 @@
+en:
+  config:
+    twitter:
+        username: "Username (for tweets)"
+        password: "Password (for tweets)"
+        token: "Application token (for feeds)"
+        secret: "Application secret (for feeds)"
+  twitter_extension:
+    twitter: "Twitter"
+  
