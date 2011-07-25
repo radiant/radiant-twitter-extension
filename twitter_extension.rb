@@ -12,14 +12,3 @@ class TwitterExtension < Radiant::Extension
     admin.configuration.edit.add :form,   'admin/configuration/twitter_edit', :after => 'edit_defaults' 
   end
 end
-
-module Twitter
-  module Error
-    class LoginError < StandardError
-      def initialize(message = "Sorry: group problem"); super end
-    end
-  end
-end
-
-
-

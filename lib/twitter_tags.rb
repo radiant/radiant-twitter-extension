@@ -1,207 +1,207 @@
 require 'twitter'
-require 'hashie'
 
 module TwitterTags
   include ActionView::Helpers::DateHelper
   include Radiant::Taggable
 
-  desc %{
-    Usage:
-    <pre><code><r:twitter:message [max="10"] /></code></pre>
-    Displays the latest status message from the current user's timeline. If you require finer grained control please use the individual tags like:
+  tag 'twitter' do |tag|
+    tag.expand
+  end
 
-  <pre><code>
-  <r:twitter>
-    <r:tweets max="10">
-      <r:each>
-        <div class="tweet">
-          <p class="text">
-            <r:tweet:text />
-            <br/> <r:tweet:created_ago /> ago from <r:tweet:source />
-          </p>
-        </div>
-      </r:each>
-    </r:tweets>
-  </r:twitter>
-  </code></pre>
+  desc %{
+    Retrieve a list of tweets. The minimal default is to return the ten most recent tweets of the 
+    Radiant.configured twitter user (that is, the person as whom radiant is set up to tweet).
+    For that, you can use just a single tag:
+    
+    <pre><code><r:twitter:tweets /></code></pre>
+    
+    or control the presentation of tweets in a more detailed way:
+    
+    <r:twitter:tweets:each><r:tweet:user:screen_name /> : <r:tweet:text /></r:twitter:tweets:each>
+    
+    You can also specify a search in various ways. 
+    
+    * Supply a `max` attribute to change the number of tweets displayed
+    * Supply a `user` attribute to display tweets from a different username
+    * Supply a `list` attribute to display tweets from the named list (see also r:twitter:list for a shortcut)
+    * Supply a `search` attribute to show tweets containing that text (see also r:twitter:search for a shortcut)
+      You don't need to %escape the search string. 
+      In a search query the user and list parameters will be ignored.
+    
+    <pre><code>
+      <r:twitter:tweets user="spanner_org" max="2" />
+      <r:twitter:tweets search="#radiant" />
+    </code></pre>
+    
   }
-  tag 'twitter:message' do |tag|
-    max=tag.attr['max'].to_i
+  tag 'twitter:tweets' do |tag|  
+    tag.locals.tweets = fetch_and_cache_tweets(tag.attr.slice('user', 'max', 'search', 'list').symbolize_keys)
+    tag.double? ? tag.expand : tag.render('twitter:messages')
+  end
+  
+  tag 'twitter:tweets:each' do |tag|
+    tag.locals.tweets ||= fetch_and_cache_tweets(tag.attr.slice('user', 'max', 'search', 'list').symbolize_keys)
+    tag.render('_tweets_list')
+  end
+
+  desc %{
+    Fetches and loops through tweets matching the supplied search string. You don't need to %escape the search string.
+
+    <pre><code>
+      <r:twitter:search for="#radiant"><r:tweets:each>...</r:tweets:each></r:twitter:search>
+      <r:twitter:search for="rails cms" max="1">...</r:twitter:search>
+      <r:twitter:search for="somethinbg" max="20">...</r:twitter:search>
+    </code></pre>
+    
+    Short form also works:
+    
+    <pre><code><r:twitter:search for="#radiant" /></code></pre>
+
+    and you can go stright into a loop:
+    
+    <pre><code><r:twitter:search:each for="#radiant">...</r:twitter:search:each></code></pre>    
+  }
+  tag 'twitter:search' do |tag|
+    tag.locals.tweets = fetch_and_cache_tweets(:search => tag.attr['for']) if tag.attr.any?
+    tag.double? ? tag.expand : tag.render('twitter:messages')
+  end
+
+  tag 'twitter:search:each' do |tag|
+    tag.locals.tweets ||= fetch_and_cache_tweets(:search => tag.attr['for'])
+    tag.render('_tweets_list')
+  end
+
+  desc %{
+    Fetches tweets from the specified list belonging to the specified (or default) user.
+
+    <pre><code><r:twitter:list list="listname" [user="username"] [max="10"]  /></code></pre>
+    
+    Short form also works:
+    
+    <pre><code><r:twitter:list list="radiant" /></code></pre>
+    
+    and you can go stright into a loop:
+    
+    <pre><code><r:twitter:list:each list="radiant">...</r:twitter:list:each></code></pre>    
+  }
+  tag 'twitter:list' do |tag|
+    tag.locals.tweets = fetch_and_cache_tweets(:user => tag.attr['user'], :max => tag.attr['max'], :list => tag.attr['list']) if tag.attr.any?
+    tag.double? ? tag.expand : tag.render('twitter:messages')
+  end
+  
+  tag 'twitter:list:each' do |tag|
+    tag.locals.tweets ||= fetch_and_cache_tweets(:user => tag.attr['user'], :max => tag.attr['max'], :list => tag.attr['list'])
+    tag.render('_tweets_list')
+  end
+
+  desc %{
+    Returns the number of tweets.
+  }
+  tag 'tweets:length' do |tag|
+    tag.render('_tweets_length')
+  end
+
+  desc %{
+    Loops through the current list of tweets.
+  }
+  tag 'tweets:each' do |tag|
+    tag.render('_tweets_list')
+  end
+
+  # these are just for drying out: they can't be called directly.
+
+  tag '_tweets_list' do |tag|
+    raise TagError, "tweet_list utility tag called without a list of tweets to list" unless tag.locals.tweets
     out = ""
-    twitter_status(max).each do |status|
-      text = replace_links status.text
-      out << "<p class=\"twitter_tweet\"><a class=\"twitter_user\" href=\"http://twitter.com/#{status.user.screen_name}\">#{status.user.screen_name}</a> #{text} <span class=\"twitter_time\">#{time_ago_in_words(status.created_at)} ago from #{status.source}</span></p>\n"
+    tag.locals.tweets.each do |tweet|
+      tag.locals.tweet = tweet
+      out << tag.double? ? tag.expand : tag.render('tweet:message')
     end
     out
   end
+  
+  tag '_tweets_length' do |tag|
+    raise TagError, "_tweets_length utility tag called without a list of tweets to length" unless tag.locals.tweets
+    tag.locals.tweets.length
+  end
+  
+  
 
   desc %{
-    Context for the twitter tags. <br />
-    The user account defined in the Radiant config keys "twitter.password", "twitter.username" and "site.host" will be accessed.
+    Usage:
 
-    Displays the tweets from the current user's timeline:
-  <pre><code>
-  <r:twitter>
-    <r:tweets max="10">
-      <r:each>
+    This is a shortcut that displays messages from a twitter user's timeline. 
+    The username can be specified with a 'user' parameter, or we will default to the Radiant.configured twitter user.
+    The number of messages is determined by the 'max' parameter, which must be 10 or less. Default is 5.
+
+    <pre><code><r:twitter:messages max="10" /></code></pre>
+
+    Is equivalent to:
+
+    <pre><code>
+      <r:twitter:tweets:each max="10">
         <div class="tweet">
           <p class="text">
             <r:tweet:text />
             <br/> <r:tweet:created_ago /> ago from <r:tweet:source />
           </p>
         </div>
-      </r:each>
-    </r:tweets>
-  </r:twitter>
-  </code></pre>
-
-
-  <br/>
-  You can simply just use <pre><code><r:twitter:message  [max="10"] /></code></pre> if you don't require fine grained control over structure/styling.
-
+      </r:twitter:tweets:each>
+    </code></pre>
   }
-  tag 'twitter' do |tag|
-    tag.locals.client = twitter_login
-    tag.expand
-  end
-
-  desc %{
-    Retrieve a users recent tweets, optional max, default 10. Usage:
-    <pre><code><r:twitter:tweets  [max="10"]  [user="username"]/></code></pre>
-  }
-  tag 'twitter:tweets' do |tag|  
-    tag.locals.max = tag.attr['max'].blank? ? 3 : tag.attr['max'].to_i - 1
-    tag.locals.user = tag.attr['user'].blank? ? config['twitter.username'] : tag.attr['user']
-    tag.locals.tweets = JSON.parse(Rails.cache.fetch("timeline_#{tag.locals.user}_#{tag.locals.max}",:expires_in => twitter_expires_in ) do
-      result = {}
-      begin
-        result = Twitter.user_timeline(tag.locals.user, {:page => 1, :per_page => tag.locals.max} )[0..(tag.locals.max)].to_json
-      rescue Exception => e
-        logger.error "Unable to fetch user timeline: #{e.inspect}"
-        result = {}
-      end
-      result
-    end).map{|hash| Hashie::Mash.new(hash)}
+  tag 'twitter:messages' do |tag|
     out = ""
-    if tag.locals.tweets
-      tag.expand
-    else
-      out << "Unable to fetch user timeline. Please check the logs.."
-      return out
-    end
-  end
-
-  desc %{
-    Retrieve a users recent list, optional max, default 10. Usage:
-    <pre><code><r:twitter:list list="mylist" [user="username"] [max="10"]  /></code></pre>
-  }
-  tag 'twitter:list' do |tag|
-    tag.locals.max = tag.attr['max'].blank? ? 3 : tag.attr['max'].to_i - 1
-    tag.locals.user = tag.attr['user'].blank? ? config['twitter.username'] : tag.attr['user']
-    tag.locals.tweets = JSON.parse(Rails.cache.fetch("list_timeline_#{tag.locals.user}_#{tag.attr['list']}_#{tag.locals.max}",:expire_in => twitter_expires_in  ) do
-      result = {}
-      begin
-        result = Twitter.list_timeline(tag.locals.user,tag.attr['list'], {:page => 1, :per_page => tag.locals.max} ).to_json
-      rescue Exception => e
-        logger.error "Unable to fetch user list: #{e.inspect}"
-        result = {}
-      end
-      result
-    end).map{|hash| Hashie::Mash.new(hash)}
-    out = ""
-    if tag.locals.tweets
-      tag.expand
-    else
-      out << "Unable to fetch user list. Please check the logs.."
-      return out
-    end
-  end
-
-  desc %{
-    Returns the number of tweets.
-  }
-  tag 'twitter:list:length' do |tag|
-    tag.locals.tweets.length
-  end
-
-  desc %{
-    Loops through a users tweets.
-  }
-  tag 'twitter:list:each' do |tag|
-    tag.locals.tweets.collect do |tweet|
+    tag.locals.tweets ||= fetch_and_cache_tweets(:user => tag.attr['user'], :max => tag.attr['max'])
+    tag.locals.tweets.each do |tweet|
       tag.locals.tweet = tweet
-      tag.expand
+      out << tag.render('tweet:message')
+    end
+    out
+  end
+  
+  deprecated_tag 'twitter:message', :substitute => 'twitter:messages'
+
+  tag 'twitter:tweet' do |tag|
+    tag.expand
+  end
+  
+  desc %{
+    Shortcut to display a single tweet in a standard way.
+  }
+  tag 'tweet:message' do |tag|
+    if tweet = tag.locals.tweet
+      text = replace_links(tweet.text)
+      screen_name = tag.render("tweet:user:screen_name")
+      %{
+<p class="twitter_tweet">
+  <a class="twitter_user" href="http://twitter.com/#{screen_name}">#{screen_name}</a> 
+  #{text} 
+  <span class="twitter_time">#{tag.render('tweet:created_ago')} ago</span>
+</p>}
     end
   end
 
-
-  desc %{
-    Returns the number of tweets.
-  }
-  tag 'twitter:tweets:length' do |tag|
-    tag.locals.tweets.length
-  end
-
-  desc %{
-    Loops through a users tweets.
-  }
-  tag 'twitter:tweets:each' do |tag|
-    tag.locals.tweets.collect do |tweet|
-      tag.locals.tweet = tweet
-      tag.expand
-    end
-  end
-
-
-  desc %{
-    Creates the context for a single tweet.
-  }
-  tag 'twitter:tweets:each:tweet' do |tag|
-    tag.expand
-  end
-
-    desc %{
-    Creates the context for a single tweet.
-  }
-  tag 'twitter:list:each:tweet' do |tag|
-    tag.expand
-  end
-
-  desc %{
-    Creates the context for a single tweet user.
-  }
-  tag 'twitter:list:each:tweet:user' do |tag|
-    tag.expand
-  end
-
-    [:coordinates, :in_reply_to_screen_name, :truncated, :in_reply_to_user_id, :in_reply_to_status_id, :source, :place, :geo, :favorited, :contributors, :id].each do |method|
+  [:coordinates, :in_reply_to_screen_name, :truncated, :in_reply_to_user_id, :in_reply_to_status_id, :source, :place, :geo, :favorited, :contributors, :id].each do |method|
     desc %{
       Renders the @#{method.to_s}@ attribute of the tweet
-    <pre><code><r:tweet:#{method.to_s}/></code></pre>
-
+      <pre><code><r:tweet:#{method.to_s}/></code></pre>
     }
     tag "tweet:#{method.to_s}" do |tag|
       tag.locals.tweet.send(method) rescue nil
     end
-    end
 
-      [:coordinates, :in_reply_to_screen_name, :truncated, :in_reply_to_user_id, :in_reply_to_status_id, :source, :place, :geo, :favorited, :contributors, :id].each do |method|
     desc %{
       expands if the property has a value
-    <pre><code><r:tweet:if_#{method.to_s}/></code></pre>
-
+      <pre><code><r:tweet:if_#{method.to_s}/></code></pre>
     }
     tag "tweet:if_#{method.to_s}" do |tag|
       value = tag.locals.tweet.send(method) rescue nil
       tag.expand if !value.nil? && !value.empty?
     end
-      end
 
-  [:coordinates, :in_reply_to_screen_name, :truncated, :in_reply_to_user_id, :in_reply_to_status_id, :source, :place, :geo, :favorited, :contributors, :id].each do |method|
     desc %{
       expands if the property has no value
-    <pre><code><r:tweet:unless_#{method.to_s}/></code></pre>
-
+      <pre><code><r:tweet:unless_#{method.to_s}/></code></pre>
     }
     tag "tweet:unless_#{method.to_s}" do |tag|
       value = tag.locals.tweet.send(method) rescue nil
@@ -212,8 +212,7 @@ module TwitterTags
   [:date, :created_at].each do |method|
     desc %{
       renders the  created_at timestamp of the tweet
-    <pre><code><r:tweet:#{method.to_s} [format="%c"]/></code></pre>
-
+      <pre><code><r:tweet:#{method.to_s} [format="%c"]/></code></pre>
     }
     tag "tweet:#{method.to_s}" do |tag|
       format = tag.attr['format'] || "%c"
@@ -222,41 +221,46 @@ module TwitterTags
     end
   end
 
-    user_params = [:time_zone, :description, :lang, :profile_link_color, :profile_background_image_url, :profile_sidebar_fill_color, :following, :profile_background_tile, :created_at, :statuses_count,:profile_sidebar_border_color,:profile_use_background_image,:followers_count,:contributors_enabled,:notifications,:friends_count,:protected,:url,:profile_image_url,:geo_enabled,:profile_background_color,:name,:favourites_count,:location,:screen_name, :id,:verified,:utc_offset,:profile_text_color]
-    user_params.each do |method|
-      desc %{
-        Renders the @#{method.to_s}@ attribute of the tweet user
-        <pre><code><r:tweet:user:#{method.to_s}/></code></pre>
-      }
-      tag "tweet:user:#{method.to_s}" do |tag|
-        tag.locals.tweet.user.send(method) rescue nil
-      end
+  tag 'tweet:user' do |tag|
+    tag.locals.twitterer ||= fetch_twitter_user(tag.locals.tweet.from_user_id)
+    raise TagError, "twitter user '#{tag.locals.tweet.from_user_id}' could not be found" unless tag.locals.twitterer
+    tag.expand
+  end
 
-      desc %{
-        expands if @#{method.to_s}@ attribute of the tweet user has a value
-        <pre><code><r:tweet:user:if_#{method.to_s}/></code></pre>
-      }
-      tag "tweet:user:if_#{method.to_s}" do |tag|
-        value = tag.locals.tweet.user.send(method) rescue nil
-        tag.expand if !value.nil? && !value.empty?
-      end
-
-      desc %{
-        expands if @#{method.to_s}@ attribute of the tweet user has no value
-        <pre><code><r:tweet:user:unless_#{method.to_s}/></code></pre>
-      }
-      tag "tweet:user:unless_#{method.to_s}" do |tag|
-        value = tag.locals.tweet.user.send(method) rescue nil
-        tag.expand if value.nil? || value.empty?
-      end
+  [:time_zone, :description, :lang, :profile_link_color, :profile_background_image_url, :profile_sidebar_fill_color, :following, :profile_background_tile, :created_at, :statuses_count,:profile_sidebar_border_color,:profile_use_background_image,:followers_count,:contributors_enabled,:notifications,:friends_count,:protected,:url,:profile_image_url,:geo_enabled,:profile_background_color,:name,:favourites_count,:location,:screen_name, :id,:verified,:utc_offset,:profile_text_color].each do |method|
+    desc %{
+      Renders the @#{method.to_s}@ attribute of the tweet user
+      <pre><code><r:tweet:user:#{method.to_s}/></code></pre>
+    }
+    tag "tweet:user:#{method.to_s}" do |tag|
+      tag.locals.twitterer.send(method)
     end
+
+    desc %{
+      expands if @#{method.to_s}@ attribute of the tweet user has a value
+      <pre><code><r:tweet:user:if_#{method.to_s}/></code></pre>
+    }
+    tag "tweet:user:if_#{method.to_s}" do |tag|
+      value = tag.locals.twitterer.send(method) rescue nil
+      tag.expand unless value.nil? || value.empty?
+    end
+
+    desc %{
+      expands if @#{method.to_s}@ attribute of the tweet user has no value
+      <pre><code><r:tweet:user:unless_#{method.to_s}/></code></pre>
+    }
+    tag "tweet:user:unless_#{method.to_s}" do |tag|
+      value = tag.locals.twitterer.send(method) rescue nil
+      tag.expand if value.nil? || value.empty?
+    end
+  end
 
   desc %{
     Renders the text for the current tweet.
   }
   tag 'tweet:text' do |tag|
     tweet = tag.locals.tweet
-    replace_links tweet.text
+    replace_links(tweet.text)
   end
 
   desc %{
@@ -269,35 +273,75 @@ module TwitterTags
 
 private
 
-   def twitter_status(max = 1)
-      begin
-        max = 1 if (max > 10) or (max < 1)
-        client = twitter_login
-        client.user_timeline[0..(max-1)]
-      rescue Exception => e
-        # Twitter failed... just log for now
-        logger.error "Twitter Notification failure: #{e.inspect}"
+  # Retained for compatibility
+  #
+  def twitter_status(max = 1)
+    max = 1 if (max > 10) or (max < 1)
+    fetch_and_cache_tweets(:max => max)
+  end
+  
+  # General-purpose tweet-fetcher using Rails::Cache to provide a calm-enhancing gap between similar
+  # requests. Set Radiant.config['twitter.expires_in'] to change the gap from 5 minutes.
+  # Always returns an array of tweet hashes (mashes, really).
+  # :max, :user, :list and :search options are used to determine the call we make (and the cache key).
+  # :page and :per_page options are passed through to the search call but not the user or list calls.
+  # other options are passed through (to non-search calls) unchanged.
+  #
+  def fetch_and_cache_tweets(options = {})
+    Rails.logger.warn "!   fetch_and_cache_tweets(#{options.inspect})"
+    max = options.delete(:max) || 5
+    user = options.delete(:username) || Radiant.config['twitter.username']
+    list = options.delete(:list) || Radiant.config['twitter.listname']
+    search = options.delete(:search)
+    options[:count] ||= max
+    cache_key = ['twitter', list, user, max, search].compact.join('_')
+    begin
+      tweets = Rails.cache.fetch(cache_key,:expires_in => twitter_cache_duration) do
+        if search
+          Twitter::Search.new.containing(search).page(options[:page] || 1).per_page(options[:per_page] || 10).fetch
+        elsif list
+          twitter_client.list_timeline(user, list, options)
+        else
+          Rails.logger.warn "!   calling twitter_client.user_timeline(#{user}, #{options.inspect})"
+          twitter_client.user_timeline(user, options)
+        end
       end
+      
+    rescue Twitter::Error => e
+      logger.error "Unable to fetch timeline: #{e.inspect}"
     end
 
-  def twitter_login
-    Twitter.configure do |config|
-      config.consumer_key = config['twitter.token']
-      config.consumer_secret = config['twitter.secret']
-      config.oauth_token = config["twitter.#{config['twitter.username']}.atoken"]
-      config.oauth_token_secret =  config["twitter.#{config['twitter.username']}.asecret"]
+    tweets || []
+  end
+  
+  def fetch_twitter_user(id_or_screen_name)
+    cache_key = "twitter_user_#{id_or_screen_name}"
+    begin
+      twitter_user = Rails.cache.fetch(cache_key,:expires_in => twitter_cache_duration) do
+        twitter_client.user(id_or_screen_name)
+      end
+    rescue Twitter::Error => e
+      logger.error "Unable to fetch user '#{id_or_screen_name}': #{e.inspect}"
     end
-    Twitter::Client.new
-  rescue Exception => e
-    logger.error "Twitter login failure: #{e.inspect}"
   end
 
+  # these operations don't require authentication
+  #
+  def twitter_client
+    @twitter_client ||= Twitter::Client.new
+  end
+
+  # 
+  #
   def replace_links(text)
     text = text.gsub(/(http:\/\/[^\s]*)/, '<a class="twitter_link" href="\1">\1</a>')
     text.gsub(/@(\w*)/, '<a class="twitter_link" href="http://twitter.com/\1">@\1</a>')
   end
 
-  def twitter_expires_in
+  # The interval between twitter api calls with the same parameters is set by the
+  # `twitter.expires_in` config entry and defaults to 5 minutes.
+  #
+  def twitter_cache_duration
     @twitter_expires_in ||= (Radiant::Config["twitter.expires_in"] || 5).to_i.minutes
   end
 end

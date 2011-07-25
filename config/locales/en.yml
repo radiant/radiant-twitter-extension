@@ -1,7 +1,7 @@
 en:
   config:
     twitter:
-        user: "Username (for tweets)"
+        username: "Username (for tweets)"
         password: "Password (for tweets)"
         token: "Application token (for feeds)"
         secret: "Application secret (for feeds)"
