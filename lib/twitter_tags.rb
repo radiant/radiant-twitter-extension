@@ -3,6 +3,7 @@ require 'twitter'
 module TwitterTags
   include ActionView::Helpers::DateHelper
   include Radiant::Taggable
+  class TagError < StandardError; end
 
   tag 'twitter' do |tag|
     tag.expand
@@ -135,19 +136,6 @@ module TwitterTags
     The number of messages is determined by the 'max' parameter, which must be 10 or less. Default is 5.
 
     <pre><code><r:twitter:messages max="10" /></code></pre>
-
-    Is equivalent to:
-
-    <pre><code>
-      <r:twitter:tweets:each max="10">
-        <div class="tweet">
-          <p class="text">
-            <r:tweet:text />
-            <br/> <r:tweet:created_ago /> ago from <r:tweet:source />
-          </p>
-        </div>
-      </r:twitter:tweets:each>
-    </code></pre>
   }
   tag 'twitter:messages' do |tag|
     out = ""
@@ -161,27 +149,41 @@ module TwitterTags
   
   deprecated_tag 'twitter:message', :substitute => 'twitter:messages'
 
-  tag 'twitter:tweet' do |tag|
-    tag.expand
+  tag 'tweet' do |tag|
+    tag.expand if tag.locals.tweet
   end
   
   desc %{
-    Shortcut to display a single tweet in a standard way.
+    Shortcut to display a single tweet in the standard way suggested by https://dev.twitter.com/terms/display-guidelines.
+    
+    Note that for this to work you will probably want to include the twitter intents javascript in your page, and you may
+    also want to include the supplied `twitter.sass` in your site stylesheets.
   }
   tag 'tweet:message' do |tag|
     if tweet = tag.locals.tweet
       text = replace_links(tweet.text)
-      screen_name = tag.render("tweet:user:screen_name")
+      screen_name = tweet.user.screen_name
+      date = tag.render('tweet:date', :format => "%d %B")
       %{
-<p class="twitter_tweet">
-  <a class="twitter_user" href="http://twitter.com/#{screen_name}">#{screen_name}</a> 
-  #{text} 
-  <span class="twitter_time">#{tag.render('tweet:created_ago')} ago</span>
+<p class="twitter">
+  <a class="twitter_avatar" href="http://twitter.com/#{screen_name}">#{tag.render("tweet:avatar")}</a> 
+  <span class="tweet">
+    <a class="twitter_user" href="http://twitter.com/#{screen_name}">#{screen_name}</a> 
+    <span class="twitter_name">#{tweet.user.name}</span>
+    <span class="twitter_text">#{text}</span>
+    <span class="twitter_links">
+      <a class="twitter_permalink" href="http://twitter.com/#!/#{screen_name}/status/#{tweet.id_str}">#{date}</a>
+      <a class="twitter_reply" href="http://twitter.com/intent/tweet?in_reply_to=#{tweet.id_str}">reply</a>
+      <a class="twitter_retweet" href="http://twitter.com/intent/retweet?tweet_id=#{tweet.id_str}">retweet</a>
+      <a class="twitter_favorite" href="http://twitter.com/favorite?tweet_id?in_reply_to=#{tweet.id_str}">favorite</a>
+    </span>
+  </span>
 </p>}
     end
   end
 
-  [:coordinates, :in_reply_to_screen_name, :truncated, :in_reply_to_user_id, :in_reply_to_status_id, :source, :place, :geo, :favorited, :contributors, :id].each do |method|
+  [:coordinates, :in_reply_to_screen_name, :truncated, :in_reply_to_user_id, :in_reply_to_status_id, 
+    :source, :place, :geo, :favorited, :contributors, :id].each do |method|
     desc %{
       Renders the @#{method.to_s}@ attribute of the tweet
       <pre><code><r:tweet:#{method.to_s}/></code></pre>
@@ -217,19 +219,22 @@ module TwitterTags
     tag "tweet:#{method.to_s}" do |tag|
       format = tag.attr['format'] || "%c"
       date = DateTime.parse(tag.locals.tweet.created_at)
-      I18n.l date , :format => format
+      I18n.l date, :format => format
     end
   end
 
   tag 'tweet:user' do |tag|
-    tag.locals.twitterer ||= fetch_twitter_user(tag.locals.tweet.from_user_id)
+    tag.locals.twitterer = tag.locals.tweet.user
     raise TagError, "twitter user '#{tag.locals.tweet.from_user_id}' could not be found" unless tag.locals.twitterer
     tag.expand
   end
 
-  [:time_zone, :description, :lang, :profile_link_color, :profile_background_image_url, :profile_sidebar_fill_color, :following, :profile_background_tile, :created_at, :statuses_count,:profile_sidebar_border_color,:profile_use_background_image,:followers_count,:contributors_enabled,:notifications,:friends_count,:protected,:url,:profile_image_url,:geo_enabled,:profile_background_color,:name,:favourites_count,:location,:screen_name, :id,:verified,:utc_offset,:profile_text_color].each do |method|
+  [:time_zone, :description, :lang, :profile_link_color, :profile_background_image_url, :profile_sidebar_fill_color, :following, 
+    :profile_background_tile, :created_at, :statuses_count,:profile_sidebar_border_color,:profile_use_background_image,:followers_count,
+    :contributors_enabled,:notifications,:friends_count,:protected,:url,:profile_image_url,:geo_enabled,:profile_background_color,
+    :name,:favourites_count,:location,:screen_name, :id,:verified,:utc_offset,:profile_text_color].each do |method|
     desc %{
-      Renders the @#{method.to_s}@ attribute of the tweet user
+      Renders the @#{method.to_s}@ attribute of the tweeting user
       <pre><code><r:tweet:user:#{method.to_s}/></code></pre>
     }
     tag "tweet:user:#{method.to_s}" do |tag|
@@ -237,7 +242,7 @@ module TwitterTags
     end
 
     desc %{
-      expands if @#{method.to_s}@ attribute of the tweet user has a value
+      expands if @#{method.to_s}@ attribute of the tweeting user has a value
       <pre><code><r:tweet:user:if_#{method.to_s}/></code></pre>
     }
     tag "tweet:user:if_#{method.to_s}" do |tag|
@@ -246,13 +251,20 @@ module TwitterTags
     end
 
     desc %{
-      expands if @#{method.to_s}@ attribute of the tweet user has no value
+      expands if @#{method.to_s}@ attribute of the tweeting user has no value
       <pre><code><r:tweet:user:unless_#{method.to_s}/></code></pre>
     }
     tag "tweet:user:unless_#{method.to_s}" do |tag|
       value = tag.locals.twitterer.send(method) rescue nil
       tag.expand if value.nil? || value.empty?
     end
+  end
+  
+  desc %{
+    Renders an avatar image for the tweeter of the current tweet.
+  }
+  tag 'tweet:avatar' do |tag|
+    %{<img src="#{tag.render('tweet:user:profile_image_url')}" class="twitter_avatar" />}
   end
 
   desc %{
@@ -314,14 +326,14 @@ private
     tweets || []
   end
   
-  def fetch_twitter_user(id_or_screen_name)
-    cache_key = "twitter_user_#{id_or_screen_name}"
+  def fetch_twitter_user(screen_name)
+    cache_key = "twitter_user_#{screen_name}"
     begin
       twitter_user = Rails.cache.fetch(cache_key,:expires_in => twitter_cache_duration) do
-        twitter_client.user(id_or_screen_name)
+        twitter_client.user(screen_name)
       end
     rescue Twitter::Error => e
-      logger.error "Unable to fetch user '#{id_or_screen_name}': #{e.inspect}"
+      logger.error "Unable to fetch user '#{screen_name}': #{e.inspect}"
     end
   end
 
@@ -331,11 +343,12 @@ private
     @twitter_client ||= Twitter::Client.new
   end
 
-  # 
+  # Turns http
   #
   def replace_links(text)
-    text = text.gsub(/(http:\/\/[^\s]*)/, '<a class="twitter_link" href="\1">\1</a>')
-    text.gsub(/@(\w*)/, '<a class="twitter_link" href="http://twitter.com/\1">@\1</a>')
+    text = text.gsub(/(https?:\/\/\S*)/, '<a class="twitter_link" href="\1">\1</a>')
+    text = text.gsub(/@(\w*)/, '@<a class="twitter_link" href="http://twitter.com/\1">\1</a>')
+    text = text.gsub(/#(\w*)/, '<a class="twitter_link" href="http://twitter.com/search/#\1">#\1</a>')
   end
 
   # The interval between twitter api calls with the same parameters is set by the
