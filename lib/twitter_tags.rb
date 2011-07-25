@@ -162,23 +162,24 @@ module TwitterTags
   tag 'tweet:message' do |tag|
     if tweet = tag.locals.tweet
       text = replace_links(tweet.text)
-      screen_name = tweet.user.screen_name
-      date = tag.render('tweet:date', :format => "%d %B")
+      screen_name = tweet.from_user || tweet.user.screen_name   # search returns a different data structure
+      date = tag.render('tweet:date', tag.attr.dup.merge('format' => "%d %B"))
       %{
-<p class="twitter">
-  <a class="twitter_avatar" href="http://twitter.com/#{screen_name}">#{tag.render("tweet:avatar")}</a> 
-  <span class="tweet">
-    <a class="twitter_user" href="http://twitter.com/#{screen_name}">#{screen_name}</a> 
-    <span class="twitter_name">#{tweet.user.name}</span>
-    <span class="twitter_text">#{text}</span>
-    <span class="twitter_links">
-      <a class="twitter_permalink" href="http://twitter.com/#!/#{screen_name}/status/#{tweet.id_str}">#{date}</a>
-      <a class="twitter_reply" href="http://twitter.com/intent/tweet?in_reply_to=#{tweet.id_str}">reply</a>
-      <a class="twitter_retweet" href="http://twitter.com/intent/retweet?tweet_id=#{tweet.id_str}">retweet</a>
-      <a class="twitter_favorite" href="http://twitter.com/favorite?tweet_id?in_reply_to=#{tweet.id_str}">favorite</a>
-    </span>
-  </span>
-</p>}
+        <p class="twitter">
+          <a class="twitter_avatar" href="http://twitter.com/#{screen_name}">#{tag.render("tweet:avatar")}</a> 
+          <span class="tweet">
+            <a class="twitter_user" href="http://twitter.com/#{screen_name}">#{screen_name}</a> 
+            <span class="twitter_name">#{tag.render('tweet:user:name')}</span>
+            <span class="twitter_text">#{text}</span>
+            <span class="twitter_links">
+              <a class="twitter_permalink" href="http://twitter.com/#!/#{screen_name}/status/#{tweet.id_str}">#{date}</a>
+              <a class="twitter_reply" href="http://twitter.com/intent/tweet?in_reply_to=#{tweet.id_str}">reply</a>
+              <a class="twitter_retweet" href="http://twitter.com/intent/retweet?tweet_id=#{tweet.id_str}">retweet</a>
+              <a class="twitter_favorite" href="http://twitter.com/favorite?tweet_id?in_reply_to=#{tweet.id_str}">favorite</a>
+            </span>
+          </span>
+        </p>
+      }
     end
   end
 
@@ -224,8 +225,10 @@ module TwitterTags
   end
 
   tag 'tweet:user' do |tag|
-    tag.locals.twitterer = tag.locals.tweet.user
-    raise TagError, "twitter user '#{tag.locals.tweet.from_user_id}' could not be found" unless tag.locals.twitterer
+    unless tag.locals.twitterer = tag.locals.tweet.user
+      tag.locals.twitterer = fetch_twitter_user(tag.locals.tweet.from_user)
+    end
+    raise TagError, "twitter user could not be found" unless tag.locals.twitterer
     tag.expand
   end
 
@@ -264,7 +267,8 @@ module TwitterTags
     Renders an avatar image for the tweeter of the current tweet.
   }
   tag 'tweet:avatar' do |tag|
-    %{<img src="#{tag.render('tweet:user:profile_image_url')}" class="twitter_avatar" />}
+    url = tag.locals.tweet.profile_image_url || tag.render('tweet:user:profile_image_url')
+    %{<img src="#{url}" class="twitter_avatar" />}
   end
 
   desc %{

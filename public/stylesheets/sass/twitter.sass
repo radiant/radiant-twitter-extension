@@ -1,0 +1,46 @@
+p.twitter
+  a.twitter_avatar
+    float: left
+    margin-right: 6px
+    img
+      margin-top: 0.75em
+  span.tweet
+    display: block
+    overflow: hidden
+    a.twitter_user
+      font-size: 150%
+      font-weight: normal
+    span.twitter_name
+      color: #b2b2b2
+    span.twitter_text
+      display: block
+    span.twitter_links
+      display: block
+      font-size: 80%
+      a
+        padding-left: 18px
+        height: 16px
+        color: #b2b2b2
+        background:
+          position: top left
+          repeat: no-repeat
+          image: url(/images/twitter/sprite.png)
+        &:hover
+          color: #666666
+      a.twitter_permalink
+      a.twitter_reply
+        background-position: 0 -16px
+        &:hover
+          background-position: 0 -32px
+      a.twitter_favourite
+        background-position: 0 -48px
+        &:hover
+          background-position: 0 -64px
+      a.twitter_retweet
+        background-position: 0 -96px
+        &:hover
+          background-position: 0 -112px
+      a.twitter_favorite
+        background-position: 0 -80px
+        &:hover
+          background-position: 0 -112px
