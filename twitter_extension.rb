@@ -1,3 +1,5 @@
+require 'radiant-twitter-extension'
+
 class TwitterExtension < Radiant::Extension
   version RadiantTwitterExtension::VERSION
   description RadiantTwitterExtension::DESCRIPTION
@@ -5,6 +7,7 @@ class TwitterExtension < Radiant::Extension
   
   extension_config do |config|
     config.gem "twitter", :version => "~> 1.6.0"
+    # config.gem "bitly", :version => "~> 0.6.1"
   end
   
   def activate
