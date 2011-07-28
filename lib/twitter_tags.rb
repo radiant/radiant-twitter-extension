@@ -22,7 +22,7 @@ module TwitterTags
     
     You can also specify a search in various ways. 
     
-    * Supply a `max` attribute to change the number of tweets displayed
+    * Supply a `max` attribute to change the number of tweets displayed. Default is 10.
     * Supply a `user` attribute to display tweets from a different username
     * Supply a `list` attribute to display tweets from the named list (see also r:twitter:list for a shortcut)
     * Supply a `search` attribute to show tweets containing that text (see also r:twitter:search for a shortcut)
@@ -42,7 +42,7 @@ module TwitterTags
   
   tag 'twitter:tweets:each' do |tag|
     tag.locals.tweets ||= fetch_and_cache_tweets(tag.attr.slice('user', 'max', 'search', 'list').symbolize_keys)
-    tag.render('_tweets_list')
+    tag.render('_tweets_list', tag.attr.dup, &tag.block)
   end
 
   desc %{
@@ -69,7 +69,7 @@ module TwitterTags
 
   tag 'twitter:search:each' do |tag|
     tag.locals.tweets ||= fetch_and_cache_tweets(:search => tag.attr['for'])
-    tag.render('_tweets_list')
+    tag.render('_tweets_list', tag.attr.dup, &tag.block)
   end
 
   desc %{
@@ -92,21 +92,21 @@ module TwitterTags
   
   tag 'twitter:list:each' do |tag|
     tag.locals.tweets ||= fetch_and_cache_tweets(:user => tag.attr['user'], :max => tag.attr['max'], :list => tag.attr['list'])
-    tag.render('_tweets_list')
+    tag.render('_tweets_list', tag.attr.dup, &tag.block)
   end
 
   desc %{
     Returns the number of tweets.
   }
   tag 'tweets:length' do |tag|
-    tag.render('_tweets_length')
+    tag.render('_tweets_length', tag.attr.dup, &tag.block)
   end
 
   desc %{
     Loops through the current list of tweets.
   }
   tag 'tweets:each' do |tag|
-    tag.render('_tweets_list')
+    tag.render('_tweets_list', tag.attr.dup, &tag.block)
   end
 
   # these are just for drying out: they can't be called directly.
@@ -116,7 +116,11 @@ module TwitterTags
     out = ""
     tag.locals.tweets.each do |tweet|
       tag.locals.tweet = tweet
-      out << tag.double? ? tag.expand : tag.render('tweet:message')
+      if tag.double? 
+        out << tag.expand
+      else 
+        out << tag.render('tweet:message')
+      end
     end
     out
   end
@@ -125,8 +129,6 @@ module TwitterTags
     raise TagError, "_tweets_length utility tag called without a list of tweets to length" unless tag.locals.tweets
     tag.locals.tweets.length
   end
-  
-  
 
   desc %{
     Usage:
@@ -172,10 +174,10 @@ module TwitterTags
             <span class="twitter_name">#{tag.render('tweet:user:name')}</span>
             <span class="twitter_text">#{text}</span>
             <span class="twitter_links">
-              <a class="twitter_permalink" href="http://twitter.com/#!/#{screen_name}/status/#{tweet.id_str}">#{date}</a>
-              <a class="twitter_reply" href="http://twitter.com/intent/tweet?in_reply_to=#{tweet.id_str}">reply</a>
-              <a class="twitter_retweet" href="http://twitter.com/intent/retweet?tweet_id=#{tweet.id_str}">retweet</a>
-              <a class="twitter_favorite" href="http://twitter.com/favorite?tweet_id?in_reply_to=#{tweet.id_str}">favorite</a>
+              #{tag.render('tweet:permalink')}
+              #{tag.render('tweet:reply_link')}
+              #{tag.render('tweet:retweet_link')}
+              #{tag.render('tweet:favorite_link')}
             </span>
           </span>
         </p>
@@ -190,7 +192,11 @@ module TwitterTags
       <pre><code><r:tweet:#{method.to_s}/></code></pre>
     }
     tag "tweet:#{method.to_s}" do |tag|
-      tag.locals.tweet.send(method) rescue nil
+      
+      p "calling #{method} of #{tag.locals.tweet.inspect}"
+      p "respond_to?(:source) is #{tag.locals.tweet.respond_to?(:source).inspect} and source is #{tag.locals.tweet.source}"
+      
+      tag.locals.tweet.send(method) if tag.locals.tweet.respond_to? method
     end
 
     desc %{
@@ -198,7 +204,7 @@ module TwitterTags
       <pre><code><r:tweet:if_#{method.to_s}/></code></pre>
     }
     tag "tweet:if_#{method.to_s}" do |tag|
-      value = tag.locals.tweet.send(method) rescue nil
+      value = tag.locals.tweet.send(method) if tag.locals.tweet.respond_to? method
       tag.expand if !value.nil? && !value.empty?
     end
 
@@ -207,7 +213,7 @@ module TwitterTags
       <pre><code><r:tweet:unless_#{method.to_s}/></code></pre>
     }
     tag "tweet:unless_#{method.to_s}" do |tag|
-      value = tag.locals.tweet.send(method) rescue nil
+      value = tag.locals.tweet.send(method) if tag.locals.tweet.respond_to? method
       tag.expand if value.nil? || value.empty?
     end
   end
@@ -287,6 +293,42 @@ module TwitterTags
     time_ago_in_words tweet.created_at
   end
 
+  desc %{
+    Renders a permalink to this tweet with its date as the default link text.
+  }
+  tag 'tweet:permalink' do |tag|
+    cssclass = tag.attr['class'] || 'twitter_permalink'
+    text = tag.double? ? tag.expand : I18n.l(tag.locals.tweet.created_at, :twitter)
+    %{<a class="#{cssclass}" href="http://twitter.com/#!/#{screen_name}/status/#{tweet.id_str}">#{text}</a>}
+  end
+
+  desc %{
+    Renders a 'Reply' link that can be left as it is or hooked up by the twitter javascript.
+  }
+  tag 'tweet:reply_link' do |tag|
+    cssclass = tag.attr['class'] || 'twitter_reply'
+    text = tag.double? ? tag.expand : I18n.t('twitter_extension.reply')
+    %{<a class="#{cssclass}" href="http://twitter.com/intent/tweet?in_reply_to=#{tag.locals.tweet.id_str}">#{text}</a>}
+  end
+
+  desc %{
+    Renders a 'Retweet' link that can be left as it is or hooked up by the twitter javascript.
+  }
+  tag 'tweet:retweet_link' do |tag|
+    cssclass = tag.attr['class'] || 'twitter_retweet'
+    text = tag.double? ? tag.expand : I18n.t('twitter_extension.retweet')
+    %{<a class="#{cssclass}" href="http://twitter.com/intent/retweet?tweet_id=#{tag.locals.tweet.id_str}">#{text}</a>}
+  end
+
+  desc %{
+    Renders a 'Favorite' link that can be left as it is or hooked up by the twitter javascript.
+  }
+  tag 'tweet:favorite_link' do |tag|
+    cssclass = tag.attr['class'] || 'twitter_favorite'
+    text = tag.double? ? tag.expand : I18n.t('twitter_extension.favorite')
+    %{<a class="#{cssclass}" href="http://twitter.com/intent/favorite?tweet_id=#{tag.locals.tweet.id_str}">#{text}</a>}
+  end
+
 private
 
   # Retained for compatibility
@@ -304,8 +346,7 @@ private
   # other options are passed through (to non-search calls) unchanged.
   #
   def fetch_and_cache_tweets(options = {})
-    Rails.logger.warn "!   fetch_and_cache_tweets(#{options.inspect})"
-    max = options.delete(:max) || 5
+    max = options.delete(:max) || 10
     user = options.delete(:username) || Radiant.config['twitter.username']
     list = options.delete(:list) || Radiant.config['twitter.listname']
     search = options.delete(:search)
@@ -318,7 +359,6 @@ private
         elsif list
           twitter_client.list_timeline(user, list, options)
         else
-          Rails.logger.warn "!   calling twitter_client.user_timeline(#{user}, #{options.inspect})"
           twitter_client.user_timeline(user, options)
         end
       end

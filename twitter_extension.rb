@@ -3,6 +3,10 @@ class TwitterExtension < Radiant::Extension
   description RadiantTwitterExtension::DESCRIPTION
   url RadiantTwitterExtension::URL
   
+  extension_config do |config|
+    config.gem "twitter", :version => "~> 1.6.0"
+  end
+  
   def activate
     Page.send :include, TwitterNotification             # tweet page title upon publication
     Page.send :include, TwitterTags                     # radius tags to display twitter search results

@@ -2,7 +2,8 @@
   %th.label
     Twitter
   %td
-    = check_box 'page', 'notify_twitter_of_children'
-    %label{:for => "page_notify_twitter_of_children"} Notify Twitter of newly published child pages?
+    - fields_for @page do |pf|
+      = pf.check_box :notify_twitter_of_children
+      = pf.label :notify_twitter_of_children
     - if @page.twitter_id
-      = link_to "[#{@page.twitter_id}]", "http://twitter.com/#{Radiant::Config['twitter.username']}/statuses/#{@page.twitter_id}"
+      = link_to "[#{@page.twitter_id}]", "http://twitter.com/#{Radiant::Config['twitter.username']}/status/#{@page.twitter_id}"

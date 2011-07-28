@@ -1,10 +1,20 @@
 en:
+  activerecord:
+    attributes:
+      page:
+        notify_twitter_of_children: "Notify Twitter of newly published child pages?"
   config:
     twitter:
         username: "Username (for tweets)"
         password: "Password (for tweets)"
-        token: "Application token (for feeds)"
-        secret: "Application secret (for feeds)"
+        token: "Application token"
+        secret: "Application secret"
+  date:
+    formats:
+      twitter: "%m %B"
   twitter_extension:
+    favorite: "Favorite"
+    reply: "Reply"
+    retweet: "Retweet"
     twitter: "Twitter"
   
