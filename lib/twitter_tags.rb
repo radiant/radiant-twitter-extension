@@ -101,6 +101,12 @@ module TwitterTags
   tag 'tweets:length' do |tag|
     tag.render('_tweets_length', tag.attr.dup, &tag.block)
   end
+  tag 'twitter:list:length' do |tag|
+    tag.render('_tweets_length', tag.attr.dup, &tag.block)
+  end
+  tag 'twitter:search:length' do |tag|
+    tag.render('_tweets_length', tag.attr.dup, &tag.block)
+  end
 
   desc %{
     Loops through the current list of tweets.
@@ -192,10 +198,6 @@ module TwitterTags
       <pre><code><r:tweet:#{method.to_s}/></code></pre>
     }
     tag "tweet:#{method.to_s}" do |tag|
-      
-      p "calling #{method} of #{tag.locals.tweet.inspect}"
-      p "respond_to?(:source) is #{tag.locals.tweet.respond_to?(:source).inspect} and source is #{tag.locals.tweet.source}"
-      
       tag.locals.tweet.send(method) if tag.locals.tweet.respond_to? method
     end
 

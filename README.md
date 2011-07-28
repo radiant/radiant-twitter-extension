@@ -4,8 +4,26 @@ An extension to Radiant that will automatically tweet the publication of new pag
 
 ## Installation
 
-	sudo gem install twitter 
 	sudo gem install radiant-twitter-extension
+
+add this to your environment.rb
+
+	config.gem 'radiant-twitter-extension', :version => '~> 2.0.0.rc1'
+
+and then:
+
+	rake radiant:extensions:update_all
+	rake radiant:extensions:twitter:migrate
+	
+You can also vendor the extension in the old-fashioned way:
+
+	git submodule add git://github.com/radiant/radiant-twitter-extension.git vendor/extensions/twitter
+	rake radiant:extensions:twitter:update
+	rake radiant:extensions:twitter:migrate
+
+## Status
+
+Nearly stable. I've just made some quite sweeping changes to bring this up to date, so small bugs are likely. Please file issues.
 
 ## Configuration
 
@@ -33,7 +51,7 @@ To display tweets from someone's list:
 
 	<r:twitter:tweets user="screen_name" list="list_name" />
 
-The default presentation of tweets is exactly as [specified by Twitter](https://dev.twitter.com/terms/display-guidelines) and if you include their widget script and the provided css it should all just work. If you want to present tweets differently, a range of more detailed radius tags is available. This is a slightly more compact format:
+The default presentation of tweets is exactly as [suggested by Twitter](https://dev.twitter.com/terms/display-guidelines) and if you include their widget script and the provided css it should all just work. If you want to present tweets differently, a range of more detailed radius tags is available. This is a slightly more compact format:
 
 	<r:twitter:tweets user="screen_name" />
 	  <li class="tweet">
@@ -63,13 +81,13 @@ The links created by radius tags here are all compatible with twitter's widgetin
 
 ## Todo
 
-* Smoother twitter integration
-* Page field to enter tweet text before publication
+* More gratifying twitter integration of admin
+* Page field to edit tweet text before publication
 * URL-shortener
 
 ## Copyright and license
 
-Originally created by Sean Cribbs and now the work of many hands:
+Originally created by Sean Cribbs and now the work of many hands, including:
 
 * Jim Gay
 * Edmund Haselwanter

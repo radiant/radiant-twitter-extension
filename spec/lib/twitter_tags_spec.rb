@@ -2,19 +2,23 @@ require File.dirname(__FILE__) + '/../spec_helper'
 
 describe 'TwitterTags' do
   dataset :pages
-  
+
   before do
     Radiant.config['twitter.username'] = 'testy'
     Radiant.config['twitter.password'] = 'secret'
+    
     @client = mock("HTTPAuth (client)").as_null_object
+    
+    # I've been getting odd failures with mock tweets
+    # when they're passed into a radius context
+    
     @tweets = (1..10).collect do |i|
-      mock("tweet_#{i}", 
-        :text => "tweet #{i}",
-        :created_at => Time.parse("Feb #{i} 2010"),
-        :srouce => "<a href=\"http://www.atebits.com/\" rel=\"nofollow\">Tweetie</a>"
-      )
+      OpenStruct.new.tap do |tweet|
+        tweet.text = "tweet #{i}"
+        tweet.created_at = DateTime.new(2010, 2, i+1).to_s
+        tweet.source = "<a href=\"http://www.atebits.com/\" rel=\"nofollow\">Tweetie</a>"
+      end
     end
-
   end
 
   describe '<r:twitter> The main context' do
@@ -42,27 +46,27 @@ describe 'TwitterTags' do
 
     it 'should return the tweet text and replace links' do
       tag = %{<r:twitter><r:tweets:each><r:tweet:text /></r:tweets:each></r:twitter>}
-      expected = "@mattspendlove yes. Check out <a class=\"twitter_link\" href=\"http://www.cenatus.org\">http://www.cenatus.org</a>"
+      expected = @tweets.map(&:text).join('')
       pages(:home).should render(tag).as(expected)
     end
   
-  
     it 'should return the created at timestamp' do
-      tag = %{<r:twitter><r:tweets:each><r:tweet:created_at /></r:tweets:each></r:twitter>}
-      expected = "Mon Dec 21 22:59:45 +0000 2009"
+      tag = %{<r:twitter><r:tweets:each><r:tweet:created_at format="%d %B" /></r:tweets:each></r:twitter>}
+      expected = (1..10).map{|i| "#{'%02d' % (i+1)} February"}.join('')
       pages(:home).should render(tag).as(expected)
     end
   
     it 'should return the created ago string' do
       tag = %{<r:twitter><r:tweets:each><r:tweet:created_ago /></r:tweets:each></r:twitter>}
       Time.stub!(:now).and_return(Time.parse("Feb 12 2010"))
-      pages(:home).should render(tag).as("11 days")
+      expected = '10 days9 days8 days7 days6 days5 days4 days3 days2 days1 day'
+      pages(:home).should render(tag).as(expected)
     end
-  
   
     it 'should return the source' do
       tag = %{<r:twitter><r:tweets:each><r:tweet:source /></r:tweets:each></r:twitter>}
-      pages(:home).should render(tag).as("<a href=\"http://www.atebits.com/\" rel=\"nofollow\">Tweetie</a>")
+      expected = @tweets.map(&:source).join('')
+      pages(:home).should render(tag).as(expected)
     end
   end
   
@@ -84,29 +88,26 @@ describe 'TwitterTags' do
   
     it 'should return the tweet text and replace links' do
       tag = %{<r:twitter><r:list list="list"><r:each><r:tweet:text /></r:each></r:list></r:twitter>}
-      expected = "@mattspendlove yes. Check out <a class=\"twitter_link\" href=\"http://www.cenatus.org\">http://www.cenatus.org</a>"
+      expected = @tweets.map(&:text).join('')
       pages(:home).should render(tag).as(expected)
     end
   
-  
     it 'should return the created at timestamp' do
-      tag = %{<r:twitter><r:list list="list"><r:each><r:tweet:created_at /></r:each></r:list></r:twitter>}
-      expected = "Mon Dec 21 22:59:45 +0000 2009"
+      tag = %{<r:twitter><r:list list="list"><r:each><r:tweet:created_at format="%d %B" /></r:each></r:list></r:twitter>}
+      expected = (1..10).map{|i| "#{'%02d' % (i+1)} February"}.join('')
       pages(:home).should render(tag).as(expected)
     end
   
     it 'should return the created ago string' do
       tag = %{<r:twitter><r:list list="list"><r:each><r:tweet:created_ago /></r:each></r:list></r:twitter>}
       Time.stub!(:now).and_return(Time.parse("Feb 12 2010"))
-      pages(:home).should render(tag).as("11 days")
+      expected = '10 days9 days8 days7 days6 days5 days4 days3 days2 days1 day'
+      pages(:home).should render(tag).as(expected)
     end
   
     it 'should return the source' do
-      
-      p "in the last test, tweets.first is #{@tweets.first.inspect} and respond_to?(:source) is #{@tweets.first.respond_to?(:source).inspect} and source is #{tweets.first.source}"
-      
       tag = %{<r:twitter><r:list list="list"><r:each><r:tweet:source /></r:each></r:list></r:twitter>}
-      expected = "<a href=\"http://www.atebits.com/\" rel=\"nofollow\">Tweetie</a>"
+      expected = @tweets.map(&:source).join('')
       pages(:home).should render(tag).as(expected)
     end
   end
