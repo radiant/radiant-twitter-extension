@@ -6,18 +6,12 @@ An extension to Radiant that will automatically tweet the publication of new pag
 
 	sudo gem install radiant-twitter-extension
 
-add this to your environment.rb
+add this to your Gemfile
 
-	config.gem 'radiant-twitter-extension', :version => '~> 2.0.0.rc1'
+	gem 'radiant-twitter-extension', '~> 2.0.0'
 
 and then:
 
-	rake radiant:extensions:update_all
-	rake radiant:extensions:twitter:migrate
-	
-You can also vendor the extension in the old-fashioned way:
-
-	git submodule add git://github.com/radiant/radiant-twitter-extension.git vendor/extensions/twitter
 	rake radiant:extensions:twitter:update
 	rake radiant:extensions:twitter:migrate
 
