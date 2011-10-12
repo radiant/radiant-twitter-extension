@@ -13,6 +13,7 @@ Gem::Specification.new do |s|
   s.description = RadiantTwitterExtension::DESCRIPTION
 
   s.add_dependency 'twitter', "~> 1.6.0"
+  s.add_dependency 'bitly', "~> 0.6.1"
 
   ignores = if File.exist?('.gitignore')
     File.read('.gitignore').split("\n").inject([]) {|a,p| a + Dir[p] }
