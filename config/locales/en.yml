@@ -9,7 +9,7 @@ en:
         password: "Password (for tweets)"
         token: "Application token"
         secret: "Application secret"
-  date:
+  time:
     formats:
       twitter: "%m %B"
   twitter_extension:
