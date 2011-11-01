@@ -1,5 +1,5 @@
 module RadiantTwitterExtension
-  VERSION = '2.0.1'
+  VERSION = '2.0.2'
   SUMMARY = %q{Twitter posting and radius tags for twitter feeds.}
   DESCRIPTION = %q{Posts notification of pages to Twitter and provides radiius tags to display the results of twitter searches.}
   URL = "http://github.com/radiant/radiant-twitter-extension"

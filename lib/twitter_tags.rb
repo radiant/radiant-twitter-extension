@@ -1,4 +1,5 @@
 require 'twitter'
+require 'time'
 
 module TwitterTags
   include ActionView::Helpers::DateHelper
@@ -222,7 +223,7 @@ module TwitterTags
 
   [:date, :created_at].each do |method|
     desc %{
-      renders the  created_at timestamp of the tweet
+      renders the #{method} timestamp of the tweet
       <pre><code><r:tweet:#{method.to_s} [format="%c"]/></code></pre>
     }
     tag "tweet:#{method.to_s}" do |tag|
@@ -300,7 +301,7 @@ module TwitterTags
   }
   tag 'tweet:permalink' do |tag|
     cssclass = tag.attr['class'] || 'twitter_permalink'
-    text = tag.double? ? tag.expand : I18n.l(tag.locals.tweet.created_at, :twitter)
+    text = tag.double? ? tag.expand : I18n.l(DateTime.parse(tag.locals.tweet.created_at), :format => :twitter)
     %{<a class="#{cssclass}" href="http://twitter.com/#!/#{screen_name}/status/#{tweet.id_str}">#{text}</a>}
   end
 
