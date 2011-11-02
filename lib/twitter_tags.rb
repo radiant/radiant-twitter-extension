@@ -301,8 +301,9 @@ module TwitterTags
   }
   tag 'tweet:permalink' do |tag|
     cssclass = tag.attr['class'] || 'twitter_permalink'
+    screen_name = tweet.from_user || tweet.user.screen_name   # search returns a different data structure
     text = tag.double? ? tag.expand : I18n.l(DateTime.parse(tag.locals.tweet.created_at), :format => :twitter)
-    %{<a class="#{cssclass}" href="http://twitter.com/#!/#{tag.locals.tweet.screen_name}/status/#{tag.locals.tweet.id_str}">#{text}</a>}
+    %{<a class="#{cssclass}" href="http://twitter.com/#!/#{screen_name}/status/#{tag.locals.tweet.id_str}">#{text}</a>}
   end
 
   desc %{
