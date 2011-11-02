@@ -277,7 +277,7 @@ module TwitterTags
   }
   tag 'tweet:avatar' do |tag|
     url = tag.locals.tweet.profile_image_url || tag.render('tweet:user:profile_image_url')
-    %{<img src="#{url}" class="twitter_avatar" />}
+    %{<img src="#{url}" alt="twitter avatar" class="twitter_avatar" />}
   end
 
   desc %{
