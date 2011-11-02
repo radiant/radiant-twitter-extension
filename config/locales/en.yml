@@ -11,7 +11,7 @@ en:
         secret: "Application secret"
   time:
     formats:
-      twitter: "%m %B"
+      twitter: "%d %B"
   twitter_extension:
     favorite: "Favorite"
     reply: "Reply"
