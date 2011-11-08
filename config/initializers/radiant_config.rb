@@ -4,5 +4,6 @@ Radiant.config do |config|
     twit.define 'password', :default => '', :allow_blank => true
     twit.define 'token', :default => '', :allow_blank => true
     twit.define 'secret', :default => '', :allow_blank => true
+    twit.define 'include_rts?', :default => true
   end
 end

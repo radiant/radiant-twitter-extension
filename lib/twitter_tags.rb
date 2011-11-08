@@ -301,9 +301,10 @@ module TwitterTags
   }
   tag 'tweet:permalink' do |tag|
     cssclass = tag.attr['class'] || 'twitter_permalink'
+    tweet = tag.locals.tweet
     screen_name = tweet.from_user || tweet.user.screen_name   # search returns a different data structure
-    text = tag.double? ? tag.expand : I18n.l(DateTime.parse(tag.locals.tweet.created_at), :format => :twitter)
-    %{<a class="#{cssclass}" href="http://twitter.com/#!/#{screen_name}/status/#{tag.locals.tweet.id_str}">#{text}</a>}
+    text = tag.double? ? tag.expand : I18n.l(DateTime.parse(tweet.created_at), :format => :twitter)
+    %{<a class="#{cssclass}" href="http://twitter.com/#!/#{screen_name}/status/#{tweet.id_str}">#{text}</a>}
   end
 
   desc %{
@@ -350,11 +351,13 @@ private
   # other options are passed through (to non-search calls) unchanged.
   #
   def fetch_and_cache_tweets(options = {})
-    max = options.delete(:max) || 10
+    options.reverse_merge! :include_rts => Radiant.config['twitter.include_rts?']  
     user = options.delete(:username) || Radiant.config['twitter.username']
     list = options.delete(:list) || Radiant.config['twitter.listname']
     search = options.delete(:search)
+    max = options.delete(:max) || 10
     options[:count] ||= max
+    
     cache_key = ['twitter', list, user, max, search].compact.join('_')
     begin
       tweets = Rails.cache.fetch(cache_key,:expires_in => twitter_cache_duration) do
